@@ -19,6 +19,10 @@ export function initGame(context, devicePixelRatio) {
   ctx   = context;
   dpr   = devicePixelRatio;
   state = createGameState();
+  if (typeof window !== 'undefined') {
+    window.__gameState = state;
+    window.__beginLevel = beginLevel;
+  }
 }
 
 export function startGameLoop() {
