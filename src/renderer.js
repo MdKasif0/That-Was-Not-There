@@ -13,6 +13,11 @@ export function render(ctx, s) {
   if (s.phase !== 'title') {
     drawSpikes(ctx, s.spikes);
     drawPlatforms(ctx, s.platforms, s.time);
+    if (s.traps) {
+      for (const trap of s.traps) {
+        if (trap.render) trap.render(ctx, s.time);
+      }
+    }
     drawDoor(ctx, s.door, s.time);
 
     if (s.player.alive && s.phase !== 'dying') {
