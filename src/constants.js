@@ -16,8 +16,8 @@ export const COYOTE_FRAMES  = 6;
 export const JUMP_BUFFER    = 6;
 
 // ─── Timing ──────────────────────────────────────────────
-export const DEATH_FREEZE   = 300;   // ms
-export const TRANSITION_MS  = 1000;  // ms total (500 out + 500 in)
+export const DEATH_FREEZE   = 280;   // ms
+export const TRANSITION_MS  = 360;   // ms total (180 out + 180 in, fast snappy transitions)
 
 // ─── Rendering / ground ──────────────────────────────────
 export const GROUND_Y = 448;
@@ -61,4 +61,6 @@ export const C = {
   switchActive:  '#00e5ff',
   runeInactive:  'rgba(140, 140, 180, 0.3)',
   runeActive:    '#b388ff',
+  secretStar:    '#00e5ff',
+  secretGlow:    'rgba(0, 229, 255, 0.35)',
 };

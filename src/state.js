@@ -32,7 +32,14 @@ export function createGameState() {
     door:        null,
     traps:       [],
     trapStates:  [],
-    levelDef:    null,
+    // Level data & scripted hooks
+    levelDef:        null,
+    scriptedEvents:  [],
+    secret:          null,
+    secretsCollected:[],
+
+    // Camera settings
+    camera: { panX: 0, panY: 0, zoom: 1 },
 
     // VFX
     particles:   [],

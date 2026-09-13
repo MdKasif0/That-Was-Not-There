@@ -2,7 +2,7 @@ import { CANVAS_W, CANVAS_H, DEATH_FREEZE, TRANSITION_MS, C } from './constants.
 import { createGameState }                      from './state.js';
 import { keys, updateInput, consumeAnyKey, consumeRestart } from './input.js';
 import { updatePlayer, checkBounds }            from './physics.js';
-import { resolveCollisions, checkSpikeCollision, checkDoorCollision } from './collision.js';
+import { aabb, resolveCollisions, checkSpikeCollision, checkDoorCollision } from './collision.js';
 import { loadLevel, getLevelCount }              from './levels.js';
 import { TrapRegistry }                          from './traps.js';
 import { render }                                from './renderer.js';
@@ -92,8 +92,46 @@ function tickPlaying(dt) {
     trap.update(p, state, dt);
   }
 
+  // Scripted events check
+  if (state.scriptedEvents) {
+    for (const ev of state.scriptedEvents) {
+      if (!ev.triggered && ev.trigger && ev.trigger(state, p)) {
+        ev.triggered = true;
+        if (ev.action) ev.action(state, p);
+      }
+    }
+  }
+
+  // Secret collectible check
+  if (state.secret && !state.secret.collected) {
+    if (aabb(p, state.secret)) {
+      state.secret.collected = true;
+      if (!state.secretsCollected.includes(state.levelDef.id)) {
+        state.secretsCollected.push(state.levelDef.id);
+      }
+      for (let i = 0; i < 16; i++) {
+        state.particles.push({
+          x: state.secret.x + 9,
+          y: state.secret.y + 9,
+          vx: (Math.random() - 0.5) * 4.5,
+          vy: (Math.random() - 0.5) * 4.5,
+          life: 1,
+          decay: 0.02,
+          size: 3,
+          color: C.secretStar,
+        });
+      }
+    }
+  }
+
   if (checkSpikeCollision(p, state.spikes))    { die(); return; }
-  if (checkDoorCollision(p, state.door))       { winLevel(); return; }
+
+  // Completion condition check
+  const completed = (state.levelDef && typeof state.levelDef.completionCondition === 'function')
+    ? state.levelDef.completionCondition(state, p)
+    : checkDoorCollision(p, state.door);
+
+  if (completed) { winLevel(); return; }
 }
 
 /* ── phase: dying ─────────────────────────────────────── */
@@ -141,15 +179,18 @@ function beginLevel(index) {
   const lv = loadLevel(index);
   state.levelDef   = lv;
   state.platforms  = lv.platforms;
-  state.spikes     = lv.spikes;
-  state.door       = lv.door;
+  state.spikes     = lv.spikes || lv.hazards;
+  state.door       = lv.exit || lv.door;
+  state.camera     = lv.camera || { panX: 0, panY: 0, zoom: 1 };
+  state.scriptedEvents = lv.scriptedEvents || [];
+  state.secret     = lv.secret || null;
   state.traps      = lv.traps.map(cfg => TrapRegistry.create(cfg)).filter(Boolean);
   state.traps.forEach(trap => trap.init(state));
   resetPlayer(lv.spawn);
   state.particles  = [];
   state.shake      = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
   state.phase      = 'playing';
-  state.levelNameTimer = 2500;
+  state.levelNameTimer = 2200;
 }
 
 function resetLevel() {
@@ -157,8 +198,11 @@ function resetLevel() {
   const lv = loadLevel(state.currentLevel);
   state.levelDef   = lv;
   state.platforms  = lv.platforms;
-  state.spikes     = lv.spikes;
-  state.door       = lv.door;
+  state.spikes     = lv.spikes || lv.hazards;
+  state.door       = lv.exit || lv.door;
+  state.camera     = lv.camera || { panX: 0, panY: 0, zoom: 1 };
+  state.scriptedEvents = lv.scriptedEvents || [];
+  state.secret     = lv.secret || null;
   state.traps      = lv.traps.map(cfg => TrapRegistry.create(cfg)).filter(Boolean);
   state.traps.forEach(trap => trap.init(state));
   resetPlayer(lv.spawn);
