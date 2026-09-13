@@ -286,7 +286,14 @@ function drawHUD(ctx, s) {
   ctx.fillStyle = C.textDim;
   ctx.font      = '14px "Courier New",monospace';
   ctx.textAlign = 'left';
-  ctx.fillText(`Room ${s.currentLevel + 1}`, 14, 14);
+  const totalRooms = 15;
+  ctx.fillText(`Room ${s.currentLevel + 1}/${totalRooms}`, 14, 14);
+
+  /* secret star counter — top left below room */
+  const secretCount = s.secretsCollected ? s.secretsCollected.length : 0;
+  ctx.fillStyle = secretCount > 0 ? C.secretStar : C.textDim;
+  ctx.font      = '12px "Courier New",monospace';
+  ctx.fillText(`★ ${secretCount}/${totalRooms}`, 14, 32);
 
   /* deaths — top right */
   ctx.textAlign = 'right';
@@ -303,11 +310,11 @@ function drawHUD(ctx, s) {
 
   /* level intro overlay */
   if (s.levelNameTimer > 0 && s.levelDef) {
-    const elapsed = 2500 - s.levelNameTimer;
+    const elapsed = 2200 - s.levelNameTimer;
     let a;
-    if (elapsed < 300)       a = elapsed / 300;
-    else if (elapsed < 2000) a = 1;
-    else                     a = (2500 - elapsed) / 500;
+    if (elapsed < 200)       a = elapsed / 200;
+    else if (elapsed < 1700) a = 1;
+    else                     a = (2200 - elapsed) / 500;
     a = clamp01(a);
 
     ctx.globalAlpha  = a;
@@ -316,15 +323,23 @@ function drawHUD(ctx, s) {
 
     ctx.fillStyle = C.text;
     ctx.font = 'bold 28px "Courier New",monospace';
-    ctx.fillText(`ROOM ${s.currentLevel + 1}`, CANVAS_W / 2, CANVAS_H / 2 - 30);
+    ctx.fillText(`ROOM ${s.currentLevel + 1}`, CANVAS_W / 2, CANVAS_H / 2 - 35);
 
     ctx.fillStyle = C.textDim;
     ctx.font = '17px "Courier New",monospace';
-    ctx.fillText(`"${s.levelDef.name}"`, CANVAS_W / 2, CANVAS_H / 2 + 5);
+    const roomTitle = s.levelDef.title || s.levelDef.name;
+    ctx.fillText(`"${roomTitle}"`, CANVAS_W / 2, CANVAS_H / 2 - 2);
 
     ctx.fillStyle = C.textHint;
     ctx.font = '13px "Courier New",monospace';
-    ctx.fillText(s.levelDef.subtitle, CANVAS_W / 2, CANVAS_H / 2 + 35);
+    ctx.fillText(s.levelDef.subtitle || '', CANVAS_W / 2, CANVAS_H / 2 + 25);
+
+    // Difficulty stars
+    const diff = s.levelDef.difficulty || 1;
+    ctx.fillStyle = '#ffd740';
+    ctx.font = '14px "Courier New",monospace';
+    const stars = '★'.repeat(diff) + '☆'.repeat(Math.max(0, 5 - diff));
+    ctx.fillText(stars, CANVAS_W / 2, CANVAS_H / 2 + 50);
 
     ctx.globalAlpha = 1;
   }
@@ -332,7 +347,7 @@ function drawHUD(ctx, s) {
 
 /* — completion screen ----------------------------------- */
 function drawComplete(ctx, s) {
-  ctx.fillStyle = 'rgba(8,8,15,0.82)';
+  ctx.fillStyle = 'rgba(8,8,15,0.86)';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
   ctx.textAlign    = 'center';
@@ -340,21 +355,47 @@ function drawComplete(ctx, s) {
 
   ctx.fillStyle = C.text;
   ctx.font = 'bold 42px "Courier New",monospace';
-  ctx.fillText('You survived.', CANVAS_W / 2, CANVAS_H / 2 - 60);
+  ctx.fillText('You survived.', CANVAS_W / 2, CANVAS_H / 2 - 70);
 
   ctx.fillStyle = C.door;
-  ctx.font = '24px "Courier New",monospace';
-  ctx.fillText(`Deaths: ${s.deaths}`, CANVAS_W / 2, CANVAS_H / 2 + 10);
+  ctx.font = '22px "Courier New",monospace';
+  ctx.fillText(`Total Deaths: ${s.deaths}`, CANVAS_W / 2, CANVAS_H / 2 - 5);
+
+  const secrets = s.secretsCollected ? s.secretsCollected.length : 0;
+  ctx.fillStyle = C.secretStar;
+  ctx.font = '18px "Courier New",monospace';
+  ctx.fillText(`★ Secrets Found: ${secrets} / 15`, CANVAS_W / 2, CANVAS_H / 2 + 30);
 
   ctx.fillStyle = C.textDim;
-  ctx.font = '16px "Courier New",monospace';
-  ctx.fillText('"Nothing was ever really there."', CANVAS_W / 2, CANVAS_H / 2 + 60);
+  ctx.font = '15px "Courier New",monospace';
+  ctx.fillText('"Nothing was ever really there."', CANVAS_W / 2, CANVAS_H / 2 + 75);
 
   if (Math.sin(s.time * 0.005) > 0) {
     ctx.fillStyle = C.textHint;
     ctx.font = '14px "Courier New",monospace';
-    ctx.fillText('Press R to play again', CANVAS_W / 2, CANVAS_H / 2 + 110);
+    ctx.fillText('Press R to play again', CANVAS_W / 2, CANVAS_H / 2 + 120);
   }
+}
+
+/* — secret collectible ---------------------------------- */
+function drawSecret(ctx, secret, time) {
+  const cx = secret.x + secret.w / 2;
+  const cy = secret.y + secret.h / 2 + Math.sin(time * 0.007) * 4;
+
+  ctx.fillStyle = C.secretGlow;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(time * 0.004);
+  ctx.fillStyle = C.secretStar;
+  ctx.fillRect(-6, -6, 12, 12);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-6, -6, 12, 12);
+  ctx.restore();
 }
 
 /* ═══════════════════════════════════════════════════════════
