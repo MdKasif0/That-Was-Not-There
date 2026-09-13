@@ -4,7 +4,7 @@ import { keys, updateInput, consumeAnyKey, consumeRestart } from './input.js';
 import { updatePlayer, checkBounds }            from './physics.js';
 import { resolveCollisions, checkSpikeCollision, checkDoorCollision } from './collision.js';
 import { loadLevel, getLevelCount }              from './levels.js';
-import { initTrapStates, updateTraps }           from './traps.js';
+import { TrapRegistry }                          from './traps.js';
 import { render }                                from './renderer.js';
 
 /* ── module state ─────────────────────────────────────── */
@@ -84,8 +84,9 @@ function tickPlaying(dt) {
 
   if (checkBounds(p))                          { die(); return; }
 
-  updateTraps(state.traps, state.trapStates,
-              p, state.platforms, state.particles, dt);
+  for (const trap of state.traps) {
+    trap.update(p, state, dt);
+  }
 
   if (checkSpikeCollision(p, state.spikes))    { die(); return; }
   if (checkDoorCollision(p, state.door))       { winLevel(); return; }
@@ -120,8 +121,9 @@ function tickTransition(dt) {
 /* ── phase: complete ──────────────────────────────────── */
 function tickComplete() {
   if (consumeRestart()) {
-    state.phase   = 'title';
-    state.deaths  = 0;
+    state.phase        = 'title';
+    state.deaths       = 0;
+    state.levelAttempts = 0;
     state.currentLevel = 0;
   }
 }
@@ -131,13 +133,14 @@ function tickComplete() {
    ═══════════════════════════════════════════════════════════ */
 function beginLevel(index) {
   state.currentLevel = index;
+  state.levelAttempts = 0;
   const lv = loadLevel(index);
   state.levelDef   = lv;
   state.platforms  = lv.platforms;
   state.spikes     = lv.spikes;
   state.door       = lv.door;
-  state.traps      = lv.traps;
-  state.trapStates = initTrapStates(lv.traps);
+  state.traps      = lv.traps.map(cfg => TrapRegistry.create(cfg)).filter(Boolean);
+  state.traps.forEach(trap => trap.init(state));
   resetPlayer(lv.spawn);
   state.particles  = [];
   state.shake      = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
@@ -146,13 +149,14 @@ function beginLevel(index) {
 }
 
 function resetLevel() {
+  state.levelAttempts = (state.levelAttempts || 0) + 1;
   const lv = loadLevel(state.currentLevel);
   state.levelDef   = lv;
   state.platforms  = lv.platforms;
   state.spikes     = lv.spikes;
   state.door       = lv.door;
-  state.traps      = lv.traps;
-  state.trapStates = initTrapStates(lv.traps);
+  state.traps      = lv.traps.map(cfg => TrapRegistry.create(cfg)).filter(Boolean);
+  state.traps.forEach(trap => trap.init(state));
   resetPlayer(lv.spawn);
   state.particles  = [];
   state.shake      = { x:0, y:0, intensity:0, dur:0, maxDur:0 };

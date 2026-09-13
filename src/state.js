@@ -21,6 +21,7 @@ export function createGameState() {
   return {
     phase: 'title',          // title | playing | dying | transitioning | complete
     currentLevel: 0,
+    levelAttempts: 0,
     deaths: 0,
 
     player: createPlayer(),
