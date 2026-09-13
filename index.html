@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="That Was Not There — a rage-bait platformer where the environment betrays you at every turn.">
+  <meta name="theme-color" content="#00e5ff">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <title>That Was Not There</title>
+
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="game-canvas" aria-label="Game canvas"></canvas>
+
+    <!-- On-screen controls for touch devices (hidden by default) -->
+    <div id="touch-controls" role="toolbar" aria-label="Touch controls">
+      <div class="touch-group">
+        <button class="touch-btn" id="btn-left"  aria-label="Move left">◀</button>
+        <button class="touch-btn" id="btn-right" aria-label="Move right">▶</button>
+      </div>
+      <div class="touch-group">
+        <button class="touch-btn" id="btn-jump"  aria-label="Jump">▲</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

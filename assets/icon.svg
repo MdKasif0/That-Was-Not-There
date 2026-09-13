@@ -1,0 +1,25 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#08080f"/>
+
+  <!-- Player character -->
+  <rect x="206" y="160" width="56" height="66" rx="6" fill="#00e5ff" opacity="0.9"/>
+  <!-- Eyes -->
+  <rect x="220" y="178" width="10" height="12" rx="1" fill="#fff"/>
+  <rect x="238" y="178" width="10" height="12" rx="1" fill="#fff"/>
+
+  <!-- Platform left -->
+  <rect x="60"  y="290" width="160" height="24" rx="3" fill="#2d2d4a"/>
+  <!-- Gap — intentionally empty -->
+  <!-- Platform right -->
+  <rect x="292" y="290" width="160" height="24" rx="3" fill="#2d2d4a"/>
+
+  <!-- Spikes in the gap -->
+  <polygon points="228,314 236,294 244,314" fill="#ff1744"/>
+  <polygon points="244,314 252,294 260,314" fill="#ff1744"/>
+  <polygon points="260,314 268,294 276,314" fill="#ff1744"/>
+
+  <!-- Question mark -->
+  <text x="256" y="420" font-size="72" fill="#ff1744" text-anchor="middle"
+        font-family="'Courier New',monospace" font-weight="bold">?</text>
+</svg>

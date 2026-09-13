@@ -1,0 +1,18 @@
+{
+  "name": "That Was Not There",
+  "short_name": "TWNT",
+  "description": "A rage-bait platformer where the environment betrays you at every turn.",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#08080f",
+  "theme_color": "#00e5ff",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
