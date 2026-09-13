@@ -5,7 +5,9 @@ import { CANVAS_W, CANVAS_H, C, DEATH_FREEZE, TRANSITION_MS } from './constants.
    ═══════════════════════════════════════════════════════════ */
 export function render(ctx, s) {
   ctx.save();
-  ctx.translate(s.shake.x, s.shake.y);          // screen-shake offset
+  const panX = s.camera ? s.camera.panX || 0 : 0;
+  const panY = s.camera ? s.camera.panY || 0 : 0;
+  ctx.translate(panX + s.shake.x, panY + s.shake.y);          // camera + screen-shake offset
 
   drawBackground(ctx, s);
   drawBgParticles(ctx, s.bgParticles);
@@ -20,13 +22,17 @@ export function render(ctx, s) {
     }
     drawDoor(ctx, s.door, s.time);
 
+    if (s.secret && !s.secret.collected) {
+      drawSecret(ctx, s.secret, s.time);
+    }
+
     if (s.player.alive && s.phase !== 'dying') {
       drawPlayer(ctx, s.player, s.time);
     }
     drawParticles(ctx, s.particles);
   }
 
-  ctx.restore();                                  // remove shake
+  ctx.restore();                                  // remove camera + shake
 
   /* overlays (shake-independent) */
   if (s.phase === 'dying' && s.deathTimer > DEATH_FREEZE - 80) {
