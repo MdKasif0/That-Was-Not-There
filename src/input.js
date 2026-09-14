@@ -89,3 +89,9 @@ export function consumeRestart() {
   keys.restart = false;
   return v;
 }
+
+export function consumePause() {
+  const v = keys.pause;
+  keys.pause = false;
+  return v;
+}
