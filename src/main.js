@@ -28,7 +28,9 @@ initGame(ctx, dpr);
 initInput(canvas, onPointerAction);
 startGameLoop();
 
-/* ── Service-worker registration ──────────────────────── */
+/* ── Service-worker cleanup / unregister ────────────────── */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    for (const r of regs) r.unregister();
+  }).catch(() => {});
 }
