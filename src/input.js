@@ -5,19 +5,34 @@ export const keys = {
   jump: false,
   jumpPressed: false,   // true for exactly one update tick
   restart: false,
+  pause: false,
   anyKey: false,
 };
 
 let _jumpPrev = false;
 
 /* ── Keyboard ─────────────────────────────────────────── */
-export function initInput() {
+export function initInput(canvas, onPointerAction) {
   window.addEventListener('keydown', (e) => {
     handleKey(e.code, true);
     if (e.code === 'Space' || e.code === 'ArrowUp') e.preventDefault();
+    if (e.code === 'KeyP' || e.code === 'Escape') keys.pause = true;
     keys.anyKey = true;
   });
   window.addEventListener('keyup', (e) => handleKey(e.code, false));
+
+  if (canvas) {
+    canvas.addEventListener('pointerdown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = 960 / rect.width;
+      const scaleY = 540 / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      if (onPointerAction) onPointerAction(cx, cy);
+      keys.anyKey = true;
+    });
+  }
+
   setupTouch();
 }
 

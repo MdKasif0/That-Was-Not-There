@@ -19,6 +19,18 @@ export function updatePlayer(player, input) {
   }
   player.vx = Math.max(-MAX_SPEED, Math.min(MAX_SPEED, player.vx));
 
+  /* ── walk cycle & procedural lean ────────────────────── */
+  if (player.grounded && Math.abs(player.vx) > 0.2) {
+    player.walkCycle = (player.walkCycle || 0) + Math.abs(player.vx) * 0.14;
+  } else if (player.grounded) {
+    // Return gently to rest
+    player.walkCycle = (player.walkCycle || 0) * 0.85;
+  }
+
+  // Smooth body tilt in movement direction
+  const targetTilt = (player.vx / MAX_SPEED) * 0.14;
+  player.tilt = (player.tilt || 0) + (targetTilt - (player.tilt || 0)) * 0.22;
+
   /* ── coyote time ────────────────────────────────────── */
   player.coyoteTimer = player.grounded ? COYOTE_FRAMES : Math.max(0, player.coyoteTimer - 1);
 
@@ -33,7 +45,7 @@ export function updatePlayer(player, input) {
     player.grounded   = false;
     player.coyoteTimer = 0;
     player.jumpBuffer  = 0;
-    player.stretch     = 1;
+    player.stretch     = 1.1;
     player.jumped      = true;
   }
 
@@ -44,13 +56,67 @@ export function updatePlayer(player, input) {
   player.vy += GRAVITY;
   if (player.vy > 13) player.vy = 13;          // terminal velocity
 
+  // Airborne stretch / compression
+  if (!player.grounded) {
+    if (player.vy > 4) {
+      // Falling: slight elongation
+      player.stretch = Math.min(0.6, (player.vy - 4) * 0.08);
+    }
+  }
+
   /* ── integrate ──────────────────────────────────────── */
   player.x += player.vx;
   player.y += player.vy;
 
   /* ── squish / stretch decay ─────────────────────────── */
-  if (player.squish  > 0) { player.squish  *= 0.82; if (player.squish  < 0.01) player.squish  = 0; }
-  if (player.stretch > 0) { player.stretch *= 0.82; if (player.stretch < 0.01) player.stretch = 0; }
+  if (player.squish  > 0) { player.squish  *= 0.80; if (player.squish  < 0.01) player.squish  = 0; }
+  if (player.stretch > 0) { player.stretch *= 0.80; if (player.stretch < 0.01) player.stretch = 0; }
+
+  /* ── eye gaze & blinking ────────────────────────────── */
+  updatePlayerEyes(player);
+}
+
+function updatePlayerEyes(player) {
+  // Gaze target
+  const targetX = player.facingRight ? 2.5 : -2.5;
+  let targetY = 0;
+  if (!player.grounded) {
+    if (player.vy < -1) targetY = -2.5; // looking up while jumping
+    else if (player.vy > 1) targetY = 2.0;  // looking down while falling
+  }
+
+  player.eyeOffsetX = (player.eyeOffsetX || 0) + (targetX - (player.eyeOffsetX || 0)) * 0.25;
+  player.eyeOffsetY = (player.eyeOffsetY || 0) + (targetY - (player.eyeOffsetY || 0)) * 0.25;
+
+  // Blinking countdown
+  player.blinkTimer = (player.blinkTimer || 180) - 1;
+  if (player.blinkTimer <= 0) {
+    player.blinkState = 1; // shut
+    if (player.blinkTimer < -6) {
+      player.blinkState = 0;
+      player.blinkTimer = 160 + Math.floor(Math.random() * 160);
+    }
+  }
+}
+
+/**
+ * Calculates vertical distance to solid floor underneath player for dynamic drop shadow.
+ */
+export function updatePlayerGroundDist(player, platforms) {
+  let closestDist = 180;
+  const px = player.x + player.w * 0.5;
+  const py = player.y + player.h;
+
+  for (const plat of platforms) {
+    if (!plat.visible || plat.solid === false) continue;
+    if (px >= plat.x && px <= plat.x + plat.w && plat.y >= py - 2) {
+      const dist = plat.y - py;
+      if (dist >= 0 && dist < closestDist) {
+        closestDist = dist;
+      }
+    }
+  }
+  player.groundDist = closestDist;
 }
 
 /**
