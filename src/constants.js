@@ -6,14 +6,19 @@ export const CANVAS_H = 540;
 export const PLAYER_W = 22;
 export const PLAYER_H = 26;
 
-// ─── Physics (tuned for 60 fps fixed-step) ───────────────
-export const GRAVITY        = 0.55;
-export const PLAYER_ACCEL   = 0.65;
-export const MAX_SPEED      = 4.5;
-export const FRICTION       = 0.78;
-export const JUMP_VEL       = -10.8;
-export const COYOTE_FRAMES  = 6;
-export const JUMP_BUFFER    = 6;
+// ─── Physics (tuned for 60 fps deterministic fixed-step) ─
+export const GRAVITY           = 0.58;
+export const FALL_GRAVITY_MULT = 1.30;
+export const GROUND_ACCEL      = 0.90;
+export const GROUND_DECEL      = 0.68;
+export const AIR_ACCEL         = 0.72;
+export const AIR_DECEL         = 0.92;
+export const MAX_SPEED         = 4.5;
+export const JUMP_VEL          = -11.0;
+export const JUMP_CUT_MULT     = 0.50;
+export const TERMINAL_VEL      = 12.5;
+export const COYOTE_FRAMES     = 7;    // 7 frames ≈ 116.7ms (target: 80–120ms)
+export const JUMP_BUFFER       = 8;    // 8 frames ≈ 133.3ms (target: 100–150ms)
 
 // ─── Timing (tight, responsive, indie feel) ──────────────
 export const DEATH_FREEZE   = 80;    // 80ms crisp freeze before immediate reset

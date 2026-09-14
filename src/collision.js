@@ -7,43 +7,66 @@ export function aabb(a, b) {
 }
 
 /**
- * Resolve player vs every visible & solid platform.
- * Uses minimum-overlap axis separation.
+ * Resolve horizontal collisions against all solid platforms.
+ * Snaps player to left/right wall, zeroes horizontal velocity,
+ * and sets wall contact flags.
  */
-export function resolveCollisions(player, platforms) {
-  const wasGrounded = player.grounded;
-  player.grounded = false;
+export function resolveHorizontalCollisions(player, platforms) {
+  player.isWalledLeft = false;
+  player.isWalledRight = false;
 
   for (const p of platforms) {
-    if (!p.visible || !p.solid) continue;
-
-    // Platform may have a shakeX offset for visual only — collision uses base pos
+    if (!p.visible || p.solid === false) continue;
     if (!aabb(player, p)) continue;
 
-    const oL = (player.x + player.w) - p.x;
-    const oR = (p.x + p.w) - player.x;
-    const oT = (player.y + player.h) - p.y;
-    const oB = (p.y + p.h) - player.y;
-    const min = Math.min(oL, oR, oT, oB);
-
-    if (min === oT && player.vy >= 0) {
-      // Landing on top
-      if (!wasGrounded && player.vy > 2) player.squish = 0.35;
-      player.y  = p.y - player.h;
-      player.vy = 0;
-      player.grounded = true;
-    } else if (min === oB && player.vy <= 0) {
-      // Bumping ceiling
-      player.y  = p.y + p.h;
-      player.vy = 0;
-    } else if (min === oL) {
-      player.x  = p.x - player.w;
+    if (player.vx > 0) {
+      player.x = p.x - player.w;
       player.vx = 0;
-    } else if (min === oR) {
-      player.x  = p.x + p.w;
+      player.isWalledRight = true;
+    } else if (player.vx < 0) {
+      player.x = p.x + p.w;
       player.vx = 0;
+      player.isWalledLeft = true;
     }
   }
+}
+
+/**
+ * Resolve vertical collisions against all solid platforms.
+ * Snaps player Y to platform top (ground) or bottom (ceiling).
+ */
+export function resolveVerticalCollisions(player, platforms) {
+  const wasGrounded = player.grounded;
+  player.grounded = false;
+  player.hitCeiling = false;
+
+  for (const p of platforms) {
+    if (!p.visible || p.solid === false) continue;
+    if (!aabb(player, p)) continue;
+
+    if (player.vy >= 0) {
+      // Landing on top of platform
+      if (!wasGrounded && player.vy > 2.5) {
+        player.squish = Math.min(0.50, player.vy * 0.05);
+      }
+      player.y = p.y - player.h;
+      player.vy = 0;
+      player.grounded = true;
+    } else if (player.vy < 0) {
+      // Hitting ceiling: zero upward velocity immediately
+      player.y = p.y + p.h;
+      player.vy = 0;
+      player.hitCeiling = true;
+    }
+  }
+}
+
+/**
+ * Legacy combined resolver for full-pass resolution.
+ */
+export function resolveCollisions(player, platforms) {
+  resolveHorizontalCollisions(player, platforms);
+  resolveVerticalCollisions(player, platforms);
 }
 
 /**
