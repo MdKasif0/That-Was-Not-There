@@ -14,27 +14,49 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css?v=v3">
+  <link rel="stylesheet" href="styles/main.css?v=v4">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 </head>
 <body>
 
+  <!-- Game Viewport Container (Active in landscape / desktop) -->
   <div id="game-container">
     <canvas id="game-canvas" aria-label="Game canvas"></canvas>
 
     <!-- On-screen controls for touch devices (hidden by default) -->
     <div id="touch-controls" role="toolbar" aria-label="Touch controls">
-      <div class="touch-group">
-        <button class="touch-btn" id="btn-left"  aria-label="Move left">◀</button>
+      <div class="touch-group touch-left-group">
+        <button class="touch-btn" id="btn-left" aria-label="Move left">◀</button>
         <button class="touch-btn" id="btn-right" aria-label="Move right">▶</button>
       </div>
-      <div class="touch-group">
-        <button class="touch-btn" id="btn-jump"  aria-label="Jump">▲</button>
+      <div class="touch-group touch-right-group">
+        <button class="touch-btn touch-btn-small" id="btn-restart" aria-label="Restart room">↺</button>
+        <button class="touch-btn" id="btn-jump" aria-label="Jump">▲</button>
       </div>
     </div>
   </div>
 
-  <script type="module" src="src/main.js?v=v3"></script>
+  <!-- Portrait orientation warning (mobile portrait detection) -->
+  <div id="rotate-device-overlay" role="alert" aria-live="assertive">
+    <div class="rotate-card">
+      <div class="rotate-device-graphic" aria-hidden="true">
+        <div class="device-body">
+          <div class="device-notch"></div>
+          <div class="device-inner-screen"></div>
+        </div>
+        <div class="rotate-arrows-svg">
+          <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M42 20 A 18 18 0 1 0 44 28" />
+            <polyline points="44 14 44 22 36 22" />
+          </svg>
+        </div>
+      </div>
+      <h1 class="rotate-message">Rotate your device.</h1>
+      <p class="rotate-hint">Landscape 16:9 mode is required</p>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js?v=v4"></script>
 </body>
 </html>
