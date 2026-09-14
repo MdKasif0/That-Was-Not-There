@@ -2,7 +2,7 @@ import { CANVAS_W, CANVAS_H, DEATH_FREEZE, TRANSITION_MS, C } from './constants.
 import { createGameState }                      from './state.js';
 import { keys, updateInput, consumeAnyKey, consumeRestart, consumePause } from './input.js';
 import { updatePlayer, updatePlayerGroundDist, checkBounds }            from './physics.js';
-import { aabb, resolveCollisions, checkSpikeCollision, checkDoorCollision } from './collision.js';
+import { aabb, checkSpikeCollision, checkDoorCollision } from './collision.js';
 import { loadLevel, getLevelCount }              from './levels.js';
 import { TrapRegistry }                          from './traps.js';
 import { render }                                from './renderer.js';
@@ -115,8 +115,7 @@ function tickPlaying(dt) {
 
   const p = state.player;
 
-  updatePlayer(p, keys);
-  resolveCollisions(p, state.platforms);
+  updatePlayer(p, keys, state.platforms);
   updatePlayerGroundDist(p, state.platforms);
 
   if (checkBounds(p))                          { die(); return; }
