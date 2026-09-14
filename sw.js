@@ -1,5 +1,4 @@
-/* ── Service Worker — network-first for live updates, cache fallback for offline ────── */
-const CACHE = 'twnt-v2';
+const CACHE = 'twnt-v3';
 const ASSETS = [
   './',
   './index.html',

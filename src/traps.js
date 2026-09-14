@@ -146,24 +146,35 @@ export class DelayedPlatformTrap extends Trap {
     const px = this.x + ox;
     const py = this.y;
 
-    // Base body
-    ctx.fillStyle = this.visualState === 'warning' ? '#3d2522' : '#22223a';
+    // Drop shadow
+    ctx.fillStyle = C.platformShadow;
+    ctx.fillRect(px + 3, py + this.height, this.width - 6, 6);
+
+    // Platform body
+    ctx.fillStyle = C.platform;
     ctx.fillRect(px, py, this.width, this.height);
 
-    // Warning circuit line
+    // Beveled top surface
+    ctx.fillStyle = C.platformTop;
+    ctx.fillRect(px, py, this.width, 3);
+    ctx.fillStyle = C.platformEdge;
+    ctx.fillRect(px, py, this.width, 1);
+
+    // Warning micro-vibration indicator (subtle glowing seam)
     if (this.visualState === 'warning') {
-      const flash = Math.sin(time * 0.03) * 0.3 + 0.7;
-      ctx.fillStyle = `rgba(255, 145, 0, ${flash})`;
-      ctx.fillRect(px, py, this.width, 2);
+      const flash = Math.sin(time * 0.04) * 0.3 + 0.7;
+      ctx.fillStyle = `rgba(255, 170, 0, ${flash})`;
       ctx.fillRect(px, py + this.height - 2, this.width, 2);
-      // Indicator dots
+
+      // Clean indicator pips
       const dots = Math.floor(this.width / 24);
       for (let i = 0; i < dots; i++) {
-        ctx.fillRect(px + 12 + i * 24, py + this.height / 2 - 2, 4, 4);
+        ctx.fillRect(px + 10 + i * 24, py + 7, 3, 3);
       }
     } else {
-      ctx.fillStyle = '#4a4a70';
-      ctx.fillRect(px, py, this.width, 2);
+      // Subtle architectural seam tick
+      ctx.fillStyle = C.platformSeam;
+      ctx.fillRect(px + 16, py + 3, 1, 4);
     }
   }
 }
@@ -681,17 +692,24 @@ export class ReactiveWallTrap extends Trap {
   render(ctx, _time) {
     if (!this.visible || !this.platform) return;
 
+    // Drop shadow
+    ctx.fillStyle = C.platformShadow;
+    ctx.fillRect(this.x + 3, this.y + this.height, this.width - 6, 6);
+
+    // Architectural monolith body
     ctx.fillStyle = C.reactiveWall;
     ctx.fillRect(this.x, this.y, this.width, this.height);
 
+    // Beveled vertical edges
     ctx.fillStyle = C.reactiveEdge;
-    ctx.fillRect(this.x, this.y, 3, this.height);
-    ctx.fillRect(this.x + this.width - 3, this.y, 3, this.height);
+    ctx.fillRect(this.x, this.y, 2, this.height);
+    ctx.fillRect(this.x + this.width - 2, this.y, 2, this.height);
+    ctx.fillRect(this.x, this.y, this.width, 2);
 
-    // Hazard stripes on edges
-    ctx.fillStyle = '#ffd740';
-    for (let sy = this.y + 4; sy < this.y + this.height - 8; sy += 16) {
-      ctx.fillRect(this.x + 4, sy, this.width - 8, 4);
+    // Subtle recessed mechanical seam notches
+    ctx.fillStyle = C.platformSeam;
+    for (let sy = this.y + 16; sy < this.y + this.height - 12; sy += 24) {
+      ctx.fillRect(this.x + 4, sy, this.width - 8, 1);
     }
   }
 }
@@ -772,23 +790,40 @@ export class TimingSwitchTrap extends Trap {
     if (!this.visible) return;
 
     // Switch pedestal base
-    ctx.fillStyle = '#22223a';
+    ctx.fillStyle = C.platform;
     ctx.fillRect(this.x + this.width / 2 - 4, this.y + 12, 8, this.height - 12);
+    ctx.fillStyle = C.platformEdge;
+    ctx.fillRect(this.x + this.width / 2 - 4, this.y + 12, 8, 1);
 
     // Glowing switch orb
     const orbColor = this.triggered ? C.switchActive : C.switchInactive;
     ctx.fillStyle = orbColor;
     ctx.beginPath();
-    ctx.arc(this.x + this.width / 2, this.y + 8, 8, 0, Math.PI * 2);
+    ctx.arc(this.x + this.width / 2, this.y + 8, 7, 0, Math.PI * 2);
     ctx.fill();
+
+    // Signal conduit beam emitting toward linked objects
+    if (this.triggered && this.linkedPlatforms && this.linkedPlatforms.length > 0) {
+      const target = this.linkedPlatforms[0];
+      ctx.save();
+      ctx.strokeStyle = C.switchLine;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.lineDashOffset = -time * 0.04;
+      ctx.beginPath();
+      ctx.moveTo(this.x + this.width / 2, this.y + 8);
+      ctx.lineTo(target.x, target.y + target.h / 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Countdown ring if active
     if (this.triggered && this.timeLeft > 0) {
       const ratio = this.timeLeft / this.duration;
-      ctx.strokeStyle = '#00e5ff';
-      ctx.lineWidth = 3;
+      ctx.strokeStyle = C.player;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(this.x + this.width / 2, this.y + 8, 14, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
+      ctx.arc(this.x + this.width / 2, this.y + 8, 13, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * ratio);
       ctx.stroke();
     }
   }

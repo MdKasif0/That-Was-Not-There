@@ -1,7 +1,7 @@
 import { CANVAS_W, CANVAS_H, DEATH_FREEZE, TRANSITION_MS, C } from './constants.js';
 import { createGameState }                      from './state.js';
-import { keys, updateInput, consumeAnyKey, consumeRestart } from './input.js';
-import { updatePlayer, checkBounds }            from './physics.js';
+import { keys, updateInput, consumeAnyKey, consumeRestart, consumePause } from './input.js';
+import { updatePlayer, updatePlayerGroundDist, checkBounds }            from './physics.js';
 import { aabb, resolveCollisions, checkSpikeCollision, checkDoorCollision } from './collision.js';
 import { loadLevel, getLevelCount }              from './levels.js';
 import { TrapRegistry }                          from './traps.js';
@@ -22,6 +22,25 @@ export function initGame(context, devicePixelRatio) {
   if (typeof window !== 'undefined') {
     window.__gameState = state;
     window.__beginLevel = beginLevel;
+  }
+}
+
+export function onPointerAction(cx, cy) {
+  if (!state) return;
+  if (state.phase === 'title') {
+    beginLevel(0);
+    return;
+  }
+  // Check tiny pause button
+  const btn = state.pauseBtn;
+  if (btn && cx >= btn.x - 4 && cx <= btn.x + btn.w + 4 && cy >= btn.y - 4 && cy <= btn.y + btn.h + 4) {
+    state.paused = !state.paused;
+    return;
+  }
+  // If paused, clicking resumes
+  if (state.paused) {
+    state.paused = false;
+    return;
   }
 }
 
@@ -56,10 +75,23 @@ function loop(now) {
    TICK  —  one fixed-step update
    ═══════════════════════════════════════════════════════════ */
 function tick(dt) {
+  if (consumePause()) {
+    state.paused = !state.paused;
+  }
+
+  if (state.paused) {
+    if (consumeRestart()) {
+      state.paused = false;
+      resetLevel();
+    }
+    return;
+  }
+
   state.time += dt;
   tickBgParticles(dt);
   tickScreenShake(dt);
   tickParticles();
+  tickDeathVFX(dt);
 
   switch (state.phase) {
     case 'title':        tickTitle();       break;
@@ -85,6 +117,7 @@ function tickPlaying(dt) {
 
   updatePlayer(p, keys);
   resolveCollisions(p, state.platforms);
+  updatePlayerGroundDist(p, state.platforms);
 
   if (checkBounds(p))                          { die(); return; }
 
@@ -187,9 +220,12 @@ function beginLevel(index) {
   state.traps      = lv.traps.map(cfg => TrapRegistry.create(cfg)).filter(Boolean);
   state.traps.forEach(trap => trap.init(state));
   resetPlayer(lv.spawn);
-  state.particles  = [];
-  state.shake      = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
-  state.phase      = 'playing';
+  state.particles   = [];
+  state.deathRing   = null;
+  state.deathShards = [];
+  state.paused      = false;
+  state.shake       = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
+  state.phase       = 'playing';
   state.levelNameTimer = 2200;
 }
 
@@ -206,9 +242,12 @@ function resetLevel() {
   state.traps      = lv.traps.map(cfg => TrapRegistry.create(cfg)).filter(Boolean);
   state.traps.forEach(trap => trap.init(state));
   resetPlayer(lv.spawn);
-  state.particles  = [];
-  state.shake      = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
-  state.phase      = 'playing';
+  state.particles   = [];
+  state.deathRing   = null;
+  state.deathShards = [];
+  state.paused      = false;
+  state.shake       = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
+  state.phase       = 'playing';
 }
 
 function resetPlayer(spawn) {
@@ -221,6 +260,11 @@ function resetPlayer(spawn) {
   p.jumpBuffer  = 0;
   p.squish = 0;
   p.stretch = 0;
+  p.walkCycle = 0;
+  p.tilt = 0;
+  p.eyeOffsetX = 0;
+  p.eyeOffsetY = 0;
+  p.groundDist = 0;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -229,11 +273,57 @@ function resetPlayer(spawn) {
 function die() {
   state.player.alive = false;
   state.deaths++;
-  spawnDeath(state.player.x + state.player.w / 2,
-             state.player.y + state.player.h / 2);
-  setShake(9, 260);
+  const cx = state.player.x + state.player.w / 2;
+  const cy = state.player.y + state.player.h / 2;
+
+  // Subtle impact shockwave ring
+  state.deathRing = { x: cx, y: cy, radius: 4, alpha: 0.95 };
+
+  // Geometric polygon shatter
+  spawnDeathShards(cx, cy);
+
+  // Short screen shake (6px decaying over 120ms)
+  setShake(6, 120);
+
   state.deathTimer = DEATH_FREEZE;
   state.phase      = 'dying';
+}
+
+function spawnDeathShards(x, y) {
+  state.deathShards = [];
+  const shardCount = 10;
+  for (let i = 0; i < shardCount; i++) {
+    const angle = (Math.PI * 2 / shardCount) * i + (Math.random() - 0.5) * 0.35;
+    const sp = 2.4 + Math.random() * 3.8;
+    state.deathShards.push({
+      x, y,
+      vx: Math.cos(angle) * sp,
+      vy: Math.sin(angle) * sp - 1.2,
+      rot: Math.random() * Math.PI * 2,
+      vrot: (Math.random() - 0.5) * 0.35,
+      size: 3.5 + Math.random() * 3.5,
+      life: 1.0,
+      color: C.deathCols[i % C.deathCols.length],
+    });
+  }
+}
+
+function tickDeathVFX(dt) {
+  if (state.deathRing) {
+    state.deathRing.radius += dt * 0.45;
+    state.deathRing.alpha -= dt * 0.012;
+    if (state.deathRing.alpha <= 0) state.deathRing = null;
+  }
+
+  for (let i = state.deathShards.length - 1; i >= 0; i--) {
+    const sh = state.deathShards[i];
+    sh.x += sh.vx;
+    sh.y += sh.vy;
+    sh.vy += 0.12; // subtle gravity
+    sh.rot += sh.vrot;
+    sh.life -= dt * 0.011;
+    if (sh.life <= 0) state.deathShards.splice(i, 1);
+  }
 }
 
 function winLevel() {
@@ -247,17 +337,17 @@ function winLevel() {
    PARTICLES
    ═══════════════════════════════════════════════════════════ */
 function spawnDeath(x, y) {
-  for (let i = 0; i < 26; i++) {
-    const a = (Math.PI * 2 / 26) * i + (Math.random() - 0.5) * 0.4;
-    const sp = 2 + Math.random() * 4.5;
+  for (let i = 0; i < 20; i++) {
+    const a = (Math.PI * 2 / 20) * i + (Math.random() - 0.5) * 0.4;
+    const sp = 2 + Math.random() * 3.5;
     state.particles.push({
       x, y,
       vx: Math.cos(a) * sp,
-      vy: Math.sin(a) * sp - 2.5,
+      vy: Math.sin(a) * sp - 1.8,
       life: 1,
-      decay: 0.014 + Math.random() * 0.014,
-      size: 2 + Math.random() * 4,
-      color: C.deathCols[Math.random() * 4 | 0],
+      decay: 0.018 + Math.random() * 0.016,
+      size: 2 + Math.random() * 3,
+      color: C.deathCols[Math.random() * C.deathCols.length | 0],
     });
   }
 }

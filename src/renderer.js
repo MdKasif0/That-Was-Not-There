@@ -7,14 +7,15 @@ export function render(ctx, s) {
   ctx.save();
   const panX = s.camera ? s.camera.panX || 0 : 0;
   const panY = s.camera ? s.camera.panY || 0 : 0;
-  ctx.translate(panX + s.shake.x, panY + s.shake.y);          // camera + screen-shake offset
+  ctx.translate(panX + s.shake.x, panY + s.shake.y); // camera + screen-shake offset
 
   drawBackground(ctx, s);
-  drawBgParticles(ctx, s.bgParticles);
+  drawBgParticles(ctx, s.bgParticles, s.time);
 
   if (s.phase !== 'title') {
-    drawSpikes(ctx, s.spikes);
     drawPlatforms(ctx, s.platforms, s.time);
+    drawSpikes(ctx, s.spikes);
+
     if (s.traps) {
       for (const trap of s.traps) {
         if (trap.render) trap.render(ctx, s.time);
@@ -26,39 +27,94 @@ export function render(ctx, s) {
       drawSecret(ctx, s.secret, s.time);
     }
 
+    // Dynamic ground shadow & player
     if (s.player.alive && s.phase !== 'dying') {
+      drawPlayerGroundShadow(ctx, s.player);
       drawPlayer(ctx, s.player, s.time);
     }
+
+    // Death impact ring & geometric shards
+    drawDeathRing(ctx, s);
+    drawDeathShards(ctx, s.deathShards);
     drawParticles(ctx, s.particles);
   }
 
-  ctx.restore();                                  // remove camera + shake
+  ctx.restore(); // remove camera + shake
 
-  /* overlays (shake-independent) */
-  if (s.phase === 'dying' && s.deathTimer > DEATH_FREEZE - 80) {
-    ctx.fillStyle = 'rgba(255,23,68,0.25)';
+  /* Screen-space Overlays */
+  if (s.phase === 'dying' && s.deathTimer > DEATH_FREEZE - 35) {
+    // Ultra-brief 35ms subtle impact vignette
+    ctx.fillStyle = 'rgba(255, 45, 85, 0.14)';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
   }
+
   if (s.phase === 'transitioning') drawTransition(ctx, s);
   drawUI(ctx, s);
+
+  if (s.paused) drawPauseOverlay(ctx, s);
 }
 
 /* ═══════════════════════════════════════════════════════════
-   BACKGROUND
+   BACKGROUND & DEPTH
    ═══════════════════════════════════════════════════════════ */
-function drawBackground(ctx) {
+function drawBackground(ctx, s) {
+  // Deep slate architectural neutral gradient
   const g = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-  g.addColorStop(0, C.bg1);
+  g.addColorStop(0, C.bg0);
+  g.addColorStop(0.5, C.bg1);
   g.addColorStop(1, C.bg2);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Subtle architectural grid
+  ctx.strokeStyle = C.bgGrid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  const gridStep = 48;
+  for (let x = 0; x <= CANVAS_W; x += gridStep) {
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, CANVAS_H);
+  }
+  for (let y = 0; y <= CANVAS_H; y += gridStep) {
+    ctx.moveTo(0, y);
+    ctx.lineTo(CANVAS_W, y);
+  }
+  ctx.stroke();
+
+  // Distant geometric monoliths (subtle parallax)
+  if (s.monoliths) {
+    const camX = s.camera ? s.camera.panX || 0 : 0;
+    for (const m of s.monoliths) {
+      const mx = m.x - camX * 0.12;
+      ctx.fillStyle = C.bgMonolith;
+      ctx.strokeStyle = C.bgMonolithEdge;
+      ctx.lineWidth = 1;
+
+      ctx.beginPath();
+      if (m.peakCut > 0) {
+        ctx.moveTo(mx, m.y + m.h);
+        ctx.lineTo(mx, m.y + m.peakCut);
+        ctx.lineTo(mx + m.peakCut, m.y);
+        ctx.lineTo(mx + m.w - m.peakCut, m.y);
+        ctx.lineTo(mx + m.w, m.y + m.peakCut);
+        ctx.lineTo(mx + m.w, m.y + m.h);
+      } else {
+        ctx.rect(mx, m.y, m.w, m.h);
+      }
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
 }
 
-function drawBgParticles(ctx, list) {
+function drawBgParticles(ctx, list, time) {
   for (const p of list) {
+    const sway = Math.sin(time * p.swaySpeed + p.swayOffset) * 6;
     ctx.globalAlpha = p.opacity;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(p.x, p.y, p.size, p.size);
+    ctx.fillStyle = '#a8c2e6';
+    ctx.beginPath();
+    ctx.arc(p.x + sway, p.y, p.size * 0.5, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
@@ -72,159 +128,285 @@ function drawPlatforms(ctx, platforms, time) {
     const ox = p.shakeX || 0;
     const isVanish = p.type === 'vanish' || p.type === 'vanish_on_jump';
 
-    /* body */
+    /* 1. Subtle drop shadow underneath platform */
+    ctx.fillStyle = C.platformShadow;
+    ctx.fillRect(p.x + ox + 3, p.y + p.h, p.w - 6, 6);
+
+    /* 2. Platform body */
     ctx.fillStyle = isVanish ? C.vanish : C.platform;
-    ctx.fillRect(p.x + ox, p.y, p.w, p.h);
+    roundRect(ctx, p.x + ox, p.y, p.w, p.h, 2);
+    ctx.fill();
 
-    /* top edge */
-    ctx.fillStyle = isVanish ? C.vanishEdge : C.platformEdge;
-    ctx.fillRect(p.x + ox, p.y, p.w, 2);
+    /* 3. Top walking highlight & edge */
+    ctx.fillStyle = isVanish ? C.vanishEdge : C.platformTop;
+    ctx.fillRect(p.x + ox, p.y, p.w, 3);
 
-    /* grid lines */
-    ctx.fillStyle = C.platformGrid;
-    const gs = 16;
-    for (let gx = Math.ceil(p.x / gs) * gs; gx < p.x + p.w; gx += gs) {
-      ctx.fillRect(gx + ox, p.y, 1, p.h);
+    // Razor-sharp 1px top edge
+    ctx.fillStyle = C.platformEdge;
+    ctx.fillRect(p.x + ox, p.y, p.w, 1);
+
+    /* 4. Minimal architectural recessed seam notches (not a noisy grid) */
+    ctx.fillStyle = C.platformSeam;
+    const seamGap = 40;
+    for (let sx = p.x + seamGap; sx < p.x + p.w - 8; sx += seamGap) {
+      ctx.fillRect(sx + ox, p.y + 3, 1, Math.min(8, p.h - 4));
     }
-    for (let gy = Math.ceil(p.y / gs) * gs; gy < p.y + p.h; gy += gs) {
-      ctx.fillRect(p.x + ox, gy, p.w, 1);
-    }
 
-    /* vanish shimmer */
+    /* 5. Vanish platform subtle luminescent shimmer */
     if (isVanish) {
-      const shimmer = Math.sin(time * 0.003 + p.x * 0.08) * 0.06 + 0.06;
-      ctx.fillStyle = `rgba(100,100,210,${shimmer})`;
-      ctx.fillRect(p.x + ox, p.y, p.w, p.h);
+      const shimmer = Math.sin(time * 0.003 + p.x * 0.05) * 0.5 + 0.5;
+      ctx.fillStyle = `rgba(0, 240, 255, ${0.05 + shimmer * 0.08})`;
+      ctx.fillRect(p.x + ox, p.y + 1, p.w, 2);
     }
 
-    /* warning flash */
-    if (p.warning) {
-      const flash = Math.sin(time * 0.025) * 0.18 + 0.18;
-      ctx.fillStyle = `rgba(255,40,40,${flash})`;
-      ctx.fillRect(p.x + ox, p.y, p.w, p.h);
-    }
-
-    /* drop platform highlight */
-    if (p.type === 'drop') {
-      ctx.fillStyle = C.platformEdge;
-      ctx.fillRect(p.x + ox, p.y, p.w, 2);
+    /* 6. Subtle warning micro-vibration indicator */
+    if (p.warning || ox !== 0) {
+      const pulse = Math.sin(time * 0.03) * 0.5 + 0.5;
+      ctx.fillStyle = `rgba(255, 170, 0, ${0.25 + pulse * 0.35})`;
       ctx.fillRect(p.x + ox, p.y + p.h - 2, p.w, 2);
-      ctx.fillRect(p.x + ox, p.y, 2, p.h);
-      ctx.fillRect(p.x + ox + p.w - 2, p.y, 2, p.h);
     }
   }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SPIKES
+   SPIKES  —  razor obsidian prisms with crimson core
    ═══════════════════════════════════════════════════════════ */
 function drawSpikes(ctx, spikes) {
   for (const s of spikes) {
     if (!s.active) continue;
 
-    /* glow */
+    // Ambient hazard aura
     ctx.fillStyle = C.spikeGlow;
-    ctx.fillRect(s.x - 3, s.y - 3, s.w + 6, s.h + 6);
+    ctx.fillRect(s.x - 2, s.y - 2, s.w + 4, s.h + 4);
 
-    /* triangles */
     const tw = 16;
-    const n = Math.floor(s.w / tw);
-    ctx.fillStyle = C.spike;
-    for (let i = 0; i < n; i++) {
+    const count = Math.max(1, Math.floor(s.w / tw));
+    const isUp = s.dir === 'up';
+
+    for (let i = 0; i < count; i++) {
       const sx = s.x + i * tw;
+      const midX = sx + tw / 2;
+      const base = isUp ? s.y + s.h : s.y;
+      const apex = isUp ? s.y : s.y + s.h;
+
+      // Dark obsidian geometric body
+      ctx.fillStyle = C.spike;
       ctx.beginPath();
-      if (s.dir === 'up') {
-        ctx.moveTo(sx, s.y + s.h);
-        ctx.lineTo(sx + tw / 2, s.y);
-        ctx.lineTo(sx + tw, s.y + s.h);
-      } else {
-        ctx.moveTo(sx, s.y);
-        ctx.lineTo(sx + tw / 2, s.y + s.h);
-        ctx.lineTo(sx + tw, s.y);
-      }
+      ctx.moveTo(sx, base);
+      ctx.lineTo(midX, apex);
+      ctx.lineTo(sx + tw, base);
+      ctx.closePath();
       ctx.fill();
+
+      // Sharp crimson hazard apex
+      ctx.fillStyle = C.spikeCore;
+      ctx.beginPath();
+      ctx.moveTo(midX - 3, isUp ? apex + 7 : apex - 7);
+      ctx.lineTo(midX, apex);
+      ctx.lineTo(midX + 3, isUp ? apex + 7 : apex - 7);
+      ctx.closePath();
+      ctx.fill();
+
+      // Thin razor tip highlight
+      ctx.fillStyle = C.spikeTip;
+      ctx.fillRect(midX - 0.75, isUp ? apex : apex - 2, 1.5, 2.5);
     }
   }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   DOOR
+   DOOR  —  clean geometric portal
    ═══════════════════════════════════════════════════════════ */
 function drawDoor(ctx, door, time) {
   if (!door) return;
-  const pulse = 5 + Math.sin(time * 0.005) * 3;
+  const pulse = Math.sin(time * 0.005) * 3 + 4;
 
-  /* glow */
+  // Outer ambient glow
   ctx.fillStyle = C.doorGlow;
   ctx.fillRect(door.x - pulse, door.y - pulse, door.w + pulse * 2, door.h + pulse * 2);
 
-  /* frame */
+  // Architectural frame
   ctx.fillStyle = C.doorFrame;
-  ctx.fillRect(door.x - 3, door.y - 3, door.w + 6, door.h + 6);
+  ctx.fillRect(door.x - 2, door.y - 2, door.w + 4, door.h + 4);
+  ctx.strokeStyle = C.doorEdge;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(door.x - 2, door.y - 2, door.w + 4, door.h + 4);
 
-  /* body */
-  ctx.fillStyle = C.door;
+  // Luminous inner portal
+  const grad = ctx.createLinearGradient(door.x, door.y, door.x, door.y + door.h);
+  grad.addColorStop(0, C.doorInner);
+  grad.addColorStop(1, C.door);
+  ctx.fillStyle = grad;
   ctx.fillRect(door.x, door.y, door.w, door.h);
 
-  /* knob */
-  ctx.fillStyle = C.doorFrame;
-  ctx.beginPath();
-  ctx.arc(door.x + door.w * 0.72, door.y + door.h * 0.55, 3, 0, Math.PI * 2);
-  ctx.fill();
+  // Breathing vertical threshold lines
+  const beamA = Math.sin(time * 0.004) * 0.15 + 0.25;
+  ctx.fillStyle = `rgba(255, 255, 255, ${beamA})`;
+  ctx.fillRect(door.x + 4, door.y + 4, 3, door.h - 8);
+  ctx.fillRect(door.x + door.w - 7, door.y + 4, 2, door.h - 8);
 
-  /* highlight */
-  const sh = Math.sin(time * 0.004) * 0.15 + 0.15;
-  ctx.fillStyle = `rgba(255,255,255,${sh})`;
-  ctx.fillRect(door.x + 3, door.y + 3, door.w * 0.3, door.h - 6);
+  // Above door minimal diamond glyph
+  ctx.save();
+  ctx.translate(door.x + door.w / 2, door.y - 8);
+  ctx.fillStyle = C.doorEdge;
+  ctx.beginPath();
+  ctx.moveTo(0, -3.5);
+  ctx.lineTo(3.5, 0);
+  ctx.lineTo(0, 3.5);
+  ctx.lineTo(-3.5, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PLAYER  — geometric character with eyes + glow
+   PLAYER GROUND SHADOW  —  dynamic distance-scaled cast shadow
+   ═══════════════════════════════════════════════════════════ */
+function drawPlayerGroundShadow(ctx, p) {
+  const groundDist = p.groundDist ?? 0;
+  if (groundDist > 140) return;
+
+  const shadowFactor = Math.max(0, 1 - groundDist / 130);
+  const cx = p.x + p.w * 0.5;
+  const cy = p.y + p.h + groundDist;
+  const rx = Math.max(3, (p.w * 0.55) * shadowFactor);
+  const ry = Math.max(1.5, 3.5 * shadowFactor);
+
+  ctx.save();
+  ctx.fillStyle = `rgba(0, 0, 0, ${0.42 * shadowFactor})`;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PLAYER  —  procedural geometric character with animations
    ═══════════════════════════════════════════════════════════ */
 function drawPlayer(ctx, p, time) {
   const cx = p.x + p.w / 2;
   const bot = p.y + p.h;
 
-  /* radial glow */
-  const r = p.w + 10;
+  /* Radial ambient luminescent cyan glow */
+  const r = p.w + 12;
   const grad = ctx.createRadialGradient(cx, p.y + p.h * 0.5, 0, cx, p.y + p.h * 0.5, r);
-  grad.addColorStop(0, 'rgba(0,229,255,0.18)');
-  grad.addColorStop(1, 'rgba(0,229,255,0)');
+  grad.addColorStop(0, C.playerGlow);
+  grad.addColorStop(1, 'rgba(0, 240, 255, 0)');
   ctx.fillStyle = grad;
   ctx.fillRect(cx - r, p.y + p.h * 0.5 - r, r * 2, r * 2);
 
-  /* squish / stretch transform */
   ctx.save();
   ctx.translate(cx, bot);
-  const sx = (1 + p.squish * 0.3) * (1 - p.stretch * 0.15);
-  const sy = (1 - p.squish * 0.2) * (1 + p.stretch * 0.2);
+
+  /* 1. Procedural walking bounce (corner hop) */
+  const isMoving = p.grounded && Math.abs(p.vx) > 0.2;
+  const hop = isMoving ? Math.abs(Math.sin(p.walkCycle || 0)) * 2.2 : 0;
+  ctx.translate(0, -hop);
+
+  /* 2. Procedural body lean tilt */
+  ctx.rotate(p.tilt || 0);
+
+  /* 3. Squish / Stretch & Idle Breathing */
+  const isIdle = p.grounded && Math.abs(p.vx) < 0.2;
+  const idleBreathe = isIdle ? Math.sin(time * 0.004) * 0.025 : 0;
+
+  const sx = (1 + p.squish * 0.28) * (1 - p.stretch * 0.16) * (1 - idleBreathe);
+  const sy = (1 - p.squish * 0.22) * (1 + p.stretch * 0.28) * (1 + idleBreathe);
   ctx.scale(sx, sy);
   ctx.translate(-cx, -bot);
 
-  /* body */
-  roundRect(ctx, p.x, p.y, p.w, p.h, 3);
-  ctx.fillStyle = C.player;
+  /* 4. Main geometric body (sleek rounded capsule) */
+  roundRect(ctx, p.x, p.y, p.w, p.h, 4);
+  const bodyGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+  bodyGrad.addColorStop(0, C.player);
+  bodyGrad.addColorStop(1, C.playerDark);
+  ctx.fillStyle = bodyGrad;
   ctx.fill();
 
-  /* accent side */
-  ctx.fillStyle = C.playerDark;
-  if (p.facingRight) ctx.fillRect(p.x, p.y + 2, p.w * 0.28, p.h - 4);
-  else               ctx.fillRect(p.x + p.w * 0.72, p.y + 2, p.w * 0.28, p.h - 4);
+  /* 5. Razor top bevel highlight */
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+  ctx.fillRect(p.x + 3, p.y + 1, p.w - 6, 1.5);
 
-  /* eyes */
-  const ey = p.y + p.h * 0.32;
-  const ew = 4, eh = 5;
-  const eo = p.facingRight ? 2 : -2;
-  ctx.fillStyle = C.playerEye;
-  ctx.fillRect(cx - 5 + eo, ey, ew, eh);
-  ctx.fillRect(cx + 2 + eo, ey, ew, eh);
+  /* 6. Dark contrast visor band */
+  const visorY = p.y + 6;
+  const visorH = 10;
+  roundRect(ctx, p.x + 2, visorY, p.w - 4, visorH, 2.5);
+  ctx.fillStyle = '#07090f';
+  ctx.fill();
+
+  /* 7. Expressive procedural eyes */
+  const eyeBaseY = visorY + 5;
+  const eyeL = cx - 5 + (p.eyeOffsetX || 0);
+  const eyeR = cx + 5 + (p.eyeOffsetX || 0);
+  const eyeY = eyeBaseY + (p.eyeOffsetY || 0);
+
+  if (p.blinkState === 1) {
+    // Blinking shut: razor horizontal slits
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(eyeL - 2, eyeY);
+    ctx.lineTo(eyeL + 2, eyeY);
+    ctx.moveTo(eyeR - 2, eyeY);
+    ctx.lineTo(eyeR + 2, eyeY);
+    ctx.stroke();
+  } else {
+    // Open eyes: crisp geometric rectangles with directional pupils
+    ctx.fillStyle = C.playerEye;
+    ctx.fillRect(eyeL - 2, eyeY - 2.5, 4, 5);
+    ctx.fillRect(eyeR - 2, eyeY - 2.5, 4, 5);
+
+    // Expressive dark pupils tracking gaze
+    const pupilShift = p.facingRight ? 0.8 : -0.8;
+    ctx.fillStyle = C.playerPupil;
+    ctx.fillRect(eyeL - 1 + pupilShift, eyeY - 1, 2, 2.5);
+    ctx.fillRect(eyeR - 1 + pupilShift, eyeY - 1, 2, 2.5);
+  }
 
   ctx.restore();
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PARTICLES
+   DEATH SHOCKWAVE & GEOMETRIC SHARDS
    ═══════════════════════════════════════════════════════════ */
+function drawDeathRing(ctx, s) {
+  if (!s.deathRing || s.deathRing.alpha <= 0) return;
+  ctx.save();
+  ctx.strokeStyle = C.player;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = Math.max(0, s.deathRing.alpha);
+  ctx.beginPath();
+  ctx.arc(s.deathRing.x, s.deathRing.y, s.deathRing.radius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawDeathShards(ctx, shards) {
+  if (!shards || shards.length === 0) return;
+  for (const sh of shards) {
+    if (sh.life <= 0) continue;
+    ctx.save();
+    ctx.translate(sh.x, sh.y);
+    ctx.rotate(sh.rot);
+    ctx.globalAlpha = Math.max(0, sh.life);
+    ctx.fillStyle = sh.color;
+
+    // Geometric shard polygon (rhombus / prism)
+    ctx.beginPath();
+    ctx.moveTo(0, -sh.size);
+    ctx.lineTo(sh.size * 0.7, 0);
+    ctx.lineTo(0, sh.size * 0.8);
+    ctx.lineTo(-sh.size * 0.7, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 0.75;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 function drawParticles(ctx, list) {
   for (const p of list) {
     ctx.globalAlpha = Math.max(0, p.life);
@@ -235,19 +417,34 @@ function drawParticles(ctx, list) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   TRANSITION OVERLAY
+   TRANSITION OVERLAY  —  fast snappy 200ms dual shutter
    ═══════════════════════════════════════════════════════════ */
 function drawTransition(ctx, s) {
   const half = TRANSITION_MS / 2;
-  let a;
-  if (s.transDir === 'out') a = 1 - s.transTimer / half;
-  else                      a = s.transTimer / half;
-  ctx.fillStyle = `rgba(8,8,15,${clamp01(a)})`;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  let progress;
+  if (s.transDir === 'out') {
+    progress = 1 - Math.max(0, s.transTimer / half); // 0 -> 1
+  } else {
+    progress = Math.max(0, s.transTimer / half);     // 1 -> 0
+  }
+  progress = clamp01(progress);
+
+  // Fast geometric horizontal dual shutter
+  const w = (CANVAS_W / 2) * progress;
+  ctx.fillStyle = C.bg0;
+  ctx.fillRect(0, 0, w, CANVAS_H);
+  ctx.fillRect(CANVAS_W - w, 0, w, CANVAS_H);
+
+  // Thin cyan leading seam
+  if (w > 2 && progress < 0.98) {
+    ctx.fillStyle = C.player;
+    ctx.fillRect(w - 2, 0, 2, CANVAS_H);
+    ctx.fillRect(CANVAS_W - w, 0, 2, CANVAS_H);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
-   HUD / UI
+   UI & TYPOGRAPHY
    ═══════════════════════════════════════════════════════════ */
 function drawUI(ctx, s) {
   switch (s.phase) {
@@ -257,123 +454,217 @@ function drawUI(ctx, s) {
   }
 }
 
-/* — title screen ---------------------------------------- */
-function drawTitle(ctx, s) {
-  ctx.fillStyle = 'rgba(8,8,15,0.55)';
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-
-  /* title */
-  ctx.fillStyle = C.text;
-  ctx.font = 'bold 46px "Courier New",monospace';
-  ctx.fillText('THAT WAS NOT THERE', CANVAS_W / 2, CANVAS_H / 2 - 40);
-
-  /* blink prompt */
-  if (Math.sin(s.time * 0.005) > 0) {
-    ctx.fillStyle = C.textDim;
-    ctx.font = '17px "Courier New",monospace';
-    ctx.fillText('Press any key to start', CANVAS_W / 2, CANVAS_H / 2 + 40);
-  }
-}
-
-/* — in-game HUD ----------------------------------------- */
+/* — in-game minimal HUD --------------------------------- */
 function drawHUD(ctx, s) {
   ctx.textBaseline = 'top';
 
-  /* room label — top left */
-  ctx.fillStyle = C.textDim;
-  ctx.font      = '14px "Courier New",monospace';
+  /* 1. Room label — top left */
   ctx.textAlign = 'left';
-  const totalRooms = 15;
-  ctx.fillText(`Room ${s.currentLevel + 1}/${totalRooms}`, 14, 14);
+  ctx.fillStyle = C.text;
+  ctx.font = '600 13px "JetBrains Mono", "SF Mono", "Segoe UI Mono", monospace';
+  const roomIndex = String(s.currentLevel + 1).padStart(2, '0');
+  ctx.fillText(`${roomIndex} / 15`, 18, 16);
 
-  /* secret star counter — top left below room */
+  /* 2. Room subtitle */
+  if (s.levelDef) {
+    ctx.fillStyle = C.textDim;
+    ctx.font = '500 11px "JetBrains Mono", monospace';
+    const title = s.levelDef.title || s.levelDef.name || '';
+    ctx.fillText(title.toUpperCase(), 18, 33);
+  }
+
+  /* 3. Secret collectible diamond tally */
   const secretCount = s.secretsCollected ? s.secretsCollected.length : 0;
   ctx.fillStyle = secretCount > 0 ? C.secretStar : C.textDim;
-  ctx.font      = '12px "Courier New",monospace';
-  ctx.fillText(`★ ${secretCount}/${totalRooms}`, 14, 32);
+  ctx.font = '500 11px "JetBrains Mono", monospace';
+  ctx.fillText(`◆ ${secretCount}/15`, 95, 16);
 
-  /* deaths — top right */
+  /* 4. Minimal death tally — top right (before pause button) */
   ctx.textAlign = 'right';
-  ctx.fillStyle = C.text;
-  ctx.font      = '15px "Courier New",monospace';
-  ctx.fillText(`\u2620 ${s.deaths}`, CANVAS_W - 14, 14);
+  ctx.fillStyle = C.textMuted;
+  ctx.font = '600 13px "JetBrains Mono", "SF Mono", monospace';
+  ctx.fillText(`☠ ${s.deaths}`, CANVAS_W - 56, 16);
 
-  /* restart hint — bottom centre */
+  /* 5. Tiny pause button [ || ] — top right corner */
+  const btn = s.pauseBtn;
+  if (btn) {
+    ctx.fillStyle = C.uiBg;
+    roundRect(ctx, btn.x, btn.y, btn.w, btn.h, 4);
+    ctx.fill();
+
+    ctx.strokeStyle = C.uiBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Two sleek vertical pause bars
+    ctx.fillStyle = C.text;
+    ctx.fillRect(btn.x + 9, btn.y + 8, 3, 12);
+    ctx.fillRect(btn.x + 18, btn.y + 8, 3, 12);
+  }
+
+  /* 6. Minimal restart hint — bottom center */
   ctx.fillStyle = C.textDim;
-  ctx.font      = '11px "Courier New",monospace';
+  ctx.font = '500 11px "JetBrains Mono", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  ctx.fillText('R to restart', CANVAS_W / 2, CANVAS_H - 6);
+  ctx.fillText('[R] RESTART', CANVAS_W / 2, CANVAS_H - 10);
 
-  /* level intro overlay */
+  /* 7. Level intro typography card */
   if (s.levelNameTimer > 0 && s.levelDef) {
     const elapsed = 2200 - s.levelNameTimer;
     let a;
-    if (elapsed < 200)       a = elapsed / 200;
-    else if (elapsed < 1700) a = 1;
-    else                     a = (2200 - elapsed) / 500;
+    if (elapsed < 180)       a = elapsed / 180;
+    else if (elapsed < 1600) a = 1;
+    else                     a = (2200 - elapsed) / 600;
     a = clamp01(a);
 
-    ctx.globalAlpha  = a;
-    ctx.textAlign    = 'center';
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     ctx.fillStyle = C.text;
-    ctx.font = 'bold 28px "Courier New",monospace';
-    ctx.fillText(`ROOM ${s.currentLevel + 1}`, CANVAS_W / 2, CANVAS_H / 2 - 35);
+    ctx.font = '700 24px "JetBrains Mono", "SF Mono", monospace';
+    ctx.fillText(`ROOM ${roomIndex}`, CANVAS_W / 2, CANVAS_H / 2 - 32);
 
-    ctx.fillStyle = C.textDim;
-    ctx.font = '17px "Courier New",monospace';
+    ctx.fillStyle = C.textMuted;
+    ctx.font = '500 15px "JetBrains Mono", monospace';
     const roomTitle = s.levelDef.title || s.levelDef.name;
-    ctx.fillText(`"${roomTitle}"`, CANVAS_W / 2, CANVAS_H / 2 - 2);
+    ctx.fillText(`${roomTitle}`, CANVAS_W / 2, CANVAS_H / 2);
 
-    ctx.fillStyle = C.textHint;
-    ctx.font = '13px "Courier New",monospace';
-    ctx.fillText(s.levelDef.subtitle || '', CANVAS_W / 2, CANVAS_H / 2 + 25);
+    if (s.levelDef.subtitle) {
+      ctx.fillStyle = C.textDim;
+      ctx.font = '400 12px "JetBrains Mono", monospace';
+      ctx.fillText(s.levelDef.subtitle, CANVAS_W / 2, CANVAS_H / 2 + 24);
+    }
 
-    // Difficulty stars
-    const diff = s.levelDef.difficulty || 1;
-    ctx.fillStyle = '#ffd740';
-    ctx.font = '14px "Courier New",monospace';
-    const stars = '★'.repeat(diff) + '☆'.repeat(Math.max(0, 5 - diff));
-    ctx.fillText(stars, CANVAS_W / 2, CANVAS_H / 2 + 50);
+    // Thin elegant hairline accent
+    ctx.fillStyle = C.player;
+    ctx.fillRect(CANVAS_W / 2 - 24, CANVAS_H / 2 + 38, 48, 1.5);
 
-    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+
+/* — pause menu overlay ---------------------------------- */
+function drawPauseOverlay(ctx, s) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(7, 9, 14, 0.78)';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const cx = CANVAS_W / 2;
+  const cy = CANVAS_H / 2;
+
+  // Minimal glass card
+  const cw = 300, ch = 180;
+  roundRect(ctx, cx - cw / 2, cy - ch / 2, cw, ch, 6);
+  ctx.fillStyle = C.uiBg;
+  ctx.fill();
+  ctx.strokeStyle = C.uiBorder;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = C.text;
+  ctx.font = '700 20px "JetBrains Mono", monospace';
+  ctx.fillText('PAUSED', cx, cy - 40);
+
+  ctx.fillStyle = C.player;
+  ctx.font = '600 13px "JetBrains Mono", monospace';
+  ctx.fillText('PRESS P OR CLICK TO RESUME', cx, cy + 2);
+
+  ctx.fillStyle = C.textDim;
+  ctx.font = '500 12px "JetBrains Mono", monospace';
+  ctx.fillText('PRESS R TO RESTART ROOM', cx, cy + 32);
+
+  ctx.restore();
+}
+
+/* — title screen ---------------------------------------- */
+function drawTitle(ctx, s) {
+  ctx.fillStyle = 'rgba(7, 8, 13, 0.65)';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const cx = CANVAS_W / 2;
+  const cy = CANVAS_H / 2;
+
+  // Sleek geometric diamond emblem
+  ctx.save();
+  ctx.translate(cx, cy - 70);
+  ctx.fillStyle = C.player;
+  ctx.beginPath();
+  ctx.moveTo(0, -18);
+  ctx.lineTo(18, 0);
+  ctx.lineTo(0, 18);
+  ctx.lineTo(-18, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = C.bg0;
+  ctx.beginPath();
+  ctx.moveTo(0, -8);
+  ctx.lineTo(8, 0);
+  ctx.lineTo(0, 8);
+  ctx.lineTo(-8, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  /* Title */
+  ctx.fillStyle = C.text;
+  ctx.font = '700 36px "JetBrains Mono", "SF Mono", monospace';
+  ctx.fillText('THAT WAS NOT THERE', cx, cy - 10);
+
+  /* Subtitle */
+  ctx.fillStyle = C.textDim;
+  ctx.font = '500 12px "JetBrains Mono", monospace';
+  ctx.fillText('AN ORIGINAL PLATFORMER OF ENVIRONMENTAL DECEPTION', cx, cy + 26);
+
+  /* Blink prompt */
+  if (Math.sin(s.time * 0.005) > 0) {
+    ctx.fillStyle = C.player;
+    ctx.font = '600 13px "JetBrains Mono", monospace';
+    ctx.fillText('PRESS ANY KEY TO START', cx, cy + 72);
   }
 }
 
 /* — completion screen ----------------------------------- */
 function drawComplete(ctx, s) {
-  ctx.fillStyle = 'rgba(8,8,15,0.86)';
+  ctx.fillStyle = 'rgba(7, 9, 14, 0.92)';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  ctx.textAlign    = 'center';
+  const cx = CANVAS_W / 2;
+  const cy = CANVAS_H / 2;
+
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  ctx.fillStyle = C.text;
-  ctx.font = 'bold 42px "Courier New",monospace';
-  ctx.fillText('You survived.', CANVAS_W / 2, CANVAS_H / 2 - 70);
+  ctx.fillStyle = C.player;
+  ctx.font = '700 36px "JetBrains Mono", monospace';
+  ctx.fillText('YOU SURVIVED.', cx, cy - 65);
 
-  ctx.fillStyle = C.door;
-  ctx.font = '22px "Courier New",monospace';
-  ctx.fillText(`Total Deaths: ${s.deaths}`, CANVAS_W / 2, CANVAS_H / 2 - 5);
+  ctx.fillStyle = C.text;
+  ctx.font = '600 16px "JetBrains Mono", monospace';
+  ctx.fillText(`TOTAL DEATHS: ${s.deaths}`, cx, cy - 10);
 
   const secrets = s.secretsCollected ? s.secretsCollected.length : 0;
   ctx.fillStyle = C.secretStar;
-  ctx.font = '18px "Courier New",monospace';
-  ctx.fillText(`★ Secrets Found: ${secrets} / 15`, CANVAS_W / 2, CANVAS_H / 2 + 30);
+  ctx.font = '600 15px "JetBrains Mono", monospace';
+  ctx.fillText(`◆ SECRETS FOUND: ${secrets} / 15`, cx, cy + 24);
 
   ctx.fillStyle = C.textDim;
-  ctx.font = '15px "Courier New",monospace';
-  ctx.fillText('"Nothing was ever really there."', CANVAS_W / 2, CANVAS_H / 2 + 75);
+  ctx.font = 'italic 500 13px "JetBrains Mono", monospace';
+  ctx.fillText('"Nothing was ever really there."', cx, cy + 68);
 
   if (Math.sin(s.time * 0.005) > 0) {
     ctx.fillStyle = C.textHint;
-    ctx.font = '14px "Courier New",monospace';
-    ctx.fillText('Press R to play again', CANVAS_W / 2, CANVAS_H / 2 + 120);
+    ctx.font = '600 13px "JetBrains Mono", monospace';
+    ctx.fillText('PRESS R TO PLAY AGAIN', cx, cy + 115);
   }
 }
 

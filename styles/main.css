@@ -13,9 +13,9 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #08080f;
-  font-family: 'Courier New', Courier, monospace;
-  color: #fff;
+  background: #07080d;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Segoe UI Mono', 'Courier New', monospace;
+  color: #f0f4fc;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -30,12 +30,13 @@ html, body {
   align-items: center;
   justify-content: center;
   position: relative;
-  background: #08080f;
+  background: #07080d;
 }
 
 #game-canvas {
   display: block;
-  /* smooth bilinear — not pixel art */
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
 }
 
 /* ── Touch controls ────────────────────────────────────── */

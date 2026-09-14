@@ -1,6 +1,6 @@
 import { CANVAS_W, CANVAS_H } from './constants.js';
 import { initInput }           from './input.js';
-import { initGame, startGameLoop } from './game.js';
+import { initGame, startGameLoop, onPointerAction } from './game.js';
 
 /* ── Canvas setup ─────────────────────────────────────── */
 const canvas = document.getElementById('game-canvas');
@@ -24,8 +24,8 @@ resize();
 window.addEventListener('resize', resize);
 
 /* ── Boot ─────────────────────────────────────────────── */
-initInput();
 initGame(ctx, dpr);
+initInput(canvas, onPointerAction);
 startGameLoop();
 
 /* ── Service-worker registration ──────────────────────── */
