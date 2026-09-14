@@ -16,7 +16,7 @@ export function resolveHorizontalCollisions(player, platforms) {
   player.isWalledRight = false;
 
   for (const p of platforms) {
-    if (!p.visible || p.solid === false) continue;
+    if (!p.visible || p.solid === false || p.active === false) continue;
     if (!aabb(player, p)) continue;
 
     if (player.vx > 0) {
@@ -39,9 +39,10 @@ export function resolveVerticalCollisions(player, platforms) {
   const wasGrounded = player.grounded;
   player.grounded = false;
   player.hitCeiling = false;
+  player.slippery = false;
 
   for (const p of platforms) {
-    if (!p.visible || p.solid === false) continue;
+    if (!p.visible || p.solid === false || p.active === false) continue;
     if (!aabb(player, p)) continue;
 
     if (player.vy >= 0) {
@@ -52,6 +53,7 @@ export function resolveVerticalCollisions(player, platforms) {
       player.y = p.y - player.h;
       player.vy = 0;
       player.grounded = true;
+      if (p.slippery) player.slippery = true;
     } else if (player.vy < 0) {
       // Hitting ceiling: zero upward velocity immediately
       player.y = p.y + p.h;
