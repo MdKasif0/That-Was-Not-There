@@ -15,52 +15,84 @@ export const JUMP_VEL       = -10.8;
 export const COYOTE_FRAMES  = 6;
 export const JUMP_BUFFER    = 6;
 
-// ─── Timing ──────────────────────────────────────────────
-export const DEATH_FREEZE   = 280;   // ms
-export const TRANSITION_MS  = 360;   // ms total (180 out + 180 in, fast snappy transitions)
+// ─── Timing (tight, responsive, indie feel) ──────────────
+export const DEATH_FREEZE   = 80;    // 80ms crisp freeze before immediate reset
+export const TRANSITION_MS  = 200;   // 200ms fast aperture transition
 
 // ─── Rendering / ground ──────────────────────────────────
 export const GROUND_Y = 448;
 export const FLOOR_H  = CANVAS_H - GROUND_Y;  // 92
 
-// ─── Colours ─────────────────────────────────────────────
+// ─── Restrained Indie Color Palette ──────────────────────
 export const C = {
-  bg1:           '#08080f',
-  bg2:           '#0f0f1a',
-  platform:      '#1a1a2e',
-  platformEdge:  '#2d2d4a',
-  platformGrid:  '#1f1f35',
-  vanish:        '#1a1a35',
-  vanishEdge:    '#2d2d55',
-  player:        '#00e5ff',
-  playerDark:    '#0097a7',
-  playerEye:     '#ffffff',
-  spike:         '#ff1744',
-  spikeGlow:     'rgba(255,23,68,0.18)',
-  door:          '#ffd740',
-  doorFrame:     '#ffc107',
-  doorGlow:      'rgba(255,214,64,0.18)',
-  text:          '#ffffff',
-  textDim:       'rgba(255,255,255,0.35)',
-  textHint:      'rgba(255,255,255,0.50)',
-  deathCols:     ['#ff1744','#ff5722','#ff9100','#ffea00'],
-  doorCols:      ['#ffd740','#ffc107','#ffea00'],
-  vanishPart:    '#4a4a7a',
-  trapWarn:      '#ff9100',
-  trapWarnGlow:  'rgba(255,145,0,0.22)',
-  trapActive:    '#ff1744',
-  momentumChevrons: '#00e5ff',
-  safeZoneAura:  'rgba(0, 230, 118, 0.15)',
-  safeZoneBorder:'#00e676',
-  safeZoneWarn:  '#ff3d00',
-  decoyGlow:     'rgba(255, 215, 0, 0.28)',
-  decoyGold:     '#ffd700',
-  reactiveWall:  '#2a2a44',
-  reactiveEdge:  '#4a4a70',
-  switchInactive:'#7c4dff',
-  switchActive:  '#00e5ff',
-  runeInactive:  'rgba(140, 140, 180, 0.3)',
-  runeActive:    '#b388ff',
-  secretStar:    '#00e5ff',
-  secretGlow:    'rgba(0, 229, 255, 0.35)',
+  // Background & Depth
+  bg0:            '#07080d',
+  bg1:            '#0b0e15',
+  bg2:            '#121622',
+  bgGrid:         'rgba(255,255,255,0.018)',
+  bgMonolith:     '#0d1018',
+  bgMonolithEdge: 'rgba(255,255,255,0.035)',
+
+  // Platforms & Environment
+  platform:       '#161a25',
+  platformTop:    '#2c3447',
+  platformEdge:   '#3e4a64',
+  platformSeam:   'rgba(255,255,255,0.04)',
+  platformShadow: 'rgba(0,0,0,0.48)',
+  vanish:         '#1b1f2e',
+  vanishEdge:     '#3a4663',
+  vanishGlow:     'rgba(100,160,255,0.12)',
+
+  // Player (Luminescent Geometric Cyan)
+  player:         '#00f0ff',
+  playerDark:     '#009bb3',
+  playerCore:     '#ffffff',
+  playerGlow:     'rgba(0,240,255,0.22)',
+  playerShadow:   'rgba(0,0,0,0.45)',
+  playerEye:      '#ffffff',
+  playerPupil:    '#07080d',
+
+  // Hazards & Danger
+  spike:          '#13161f',
+  spikeCore:      '#ff2d55',
+  spikeTip:       '#ff5c7c',
+  spikeGlow:      'rgba(255,45,85,0.18)',
+
+  // Goals & Exits
+  door:           '#ffb700',
+  doorInner:      '#ffe066',
+  doorFrame:      '#232014',
+  doorEdge:       '#ffd000',
+  doorGlow:       'rgba(255,183,0,0.22)',
+
+  // Traps (Organic, communicates state)
+  trapWarn:       '#ffaa00',
+  trapWarnGlow:   'rgba(255,170,0,0.16)',
+  trapActive:     '#ff2d55',
+  momentumChevrons: '#00f0ff',
+  safeZoneAura:   'rgba(0,240,255,0.07)',
+  safeZoneBorder: '#00f0ff',
+  safeZoneWarn:   '#ff2d55',
+  decoyGold:      '#ffd000',
+  decoyGlow:      'rgba(255,208,0,0.20)',
+  reactiveWall:   '#1b202d',
+  reactiveEdge:   '#38435c',
+  switchInactive: '#475069',
+  switchActive:   '#00f0ff',
+  switchLine:     'rgba(0,240,255,0.40)',
+
+  // UI & Typography
+  text:           '#f0f4fc',
+  textMuted:      'rgba(240,244,252,0.50)',
+  textDim:        'rgba(240,244,252,0.25)',
+  textHint:       'rgba(240,244,252,0.70)',
+  uiBorder:       'rgba(255,255,255,0.08)',
+  uiBg:           'rgba(11,14,21,0.85)',
+
+  // Collectibles & VFX
+  secretStar:     '#00f0ff',
+  secretGlow:     'rgba(0,240,255,0.32)',
+  deathCols:      ['#00f0ff','#ffffff','#00b4cc','#ff2d55'],
+  doorCols:       ['#ffb700','#ffd000','#ffffff'],
+  vanishPart:     '#3e4a64',
 };
