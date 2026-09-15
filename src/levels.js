@@ -27,16 +27,17 @@ function spike(x, y, w, h, dir = 'up') {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   15 HANDCRAFTED DATA-DRIVEN LEVELS
+   20 HANDCRAFTED PSYCHOLOGICAL RAGE-BAIT LEVELS
+   Organized in 5 Psychological Arcs across 10 Categories
    ═══════════════════════════════════════════════════════════ */
 export const LEVELS = [
 
   /* ──────────────────────────────────────────────────────
      LEVEL 1: "The Hesitant Step"
-     Arc 1: Objects behave unexpectedly.
-     The 3rd step of an ascending staircase shivers and drops
-     after the player lands on it.
-     Solution: Leap directly from step 2 to step 4 or tap lightly.
+     Category 8: Confidence / Delayed Platform
+     Expectation: Ascending staircase is stable.
+     Betrayal: Step 3 shivers and collapses after 550ms.
+     Realization: Step 3 is unstable; leap directly to step 4 or tap lightly.
      ────────────────────────────────────────────────────── */
   {
     id: 'level_01',
@@ -47,18 +48,17 @@ export const LEVELS = [
     exit:  { x: 880, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 220, FLOOR_H),                                // start
-      plat(240, GROUND_Y - 30, 80, 18),                               // step 1
-      plat(350, GROUND_Y - 60, 80, 18),                               // step 2
-      plat(570, GROUND_Y - 60, 80, 18),                               // step 4
-      plat(680, GROUND_Y, 280, FLOOR_H),                              // exit ledge
-      plat(130, GROUND_Y - 120, 60, 16),                              // secret alcove
+      plat(0, GROUND_Y, 220, FLOOR_H),
+      plat(240, GROUND_Y - 30, 80, 18),
+      plat(350, GROUND_Y - 60, 80, 18),
+      plat(570, GROUND_Y - 60, 80, 18),
+      plat(680, GROUND_Y, 280, FLOOR_H),
+      plat(130, GROUND_Y - 120, 60, 16),
     ],
     hazards: [
       spike(225, SPIKE_Y, 450, SPIKE_H),
     ],
     traps: [
-      // Step 3 is a delayed platform that collapses after 550ms
       { type: 'delayedPlatform', x: 460, y: GROUND_Y - 60, width: 80, height: 18, delay: 550 },
     ],
     secret: { x: 150, y: GROUND_Y - 150, w: 18, h: 18, collected: false },
@@ -66,81 +66,168 @@ export const LEVELS = [
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 2: "The Retiring Portal"
-     Arc 1: Objects behave unexpectedly.
-     Approaching the obvious upper portal closes it with a barrier,
-     revealing the true lower ventilation passage.
-     Solution: Trigger the barrier, then drop into the lower duct.
+     LEVEL 2: "The Phantom Bridge"
+     Category 1: Visual Assumption
+     Expectation: Upper bridge looks solid and inviting.
+     Betrayal: Upper span has no collision; true path is lower stone duct.
+     Realization: The upper bridge was an optical projection; take the lower passage.
      ────────────────────────────────────────────────────── */
   {
     id: 'level_02',
-    title: 'The Retiring Portal',
-    subtitle: 'The obvious goal may not want you.',
+    title: 'The Phantom Bridge',
+    subtitle: 'Seeing is not always feeling.',
     difficulty: 1,
     spawn: { x: 70, y: SPAWN_Y },
     exit:  { x: 880, y: GROUND_Y + 16, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 250, FLOOR_H),                                // start
-      plat(300, GROUND_Y, 320, 20),                                   // upper hall
-      plat(660, GROUND_Y, 300, 20),                                   // upper fake door ledge
-      plat(400, GROUND_Y + 70, 560, 22),                              // lower duct passage
+      plat(0, GROUND_Y, 220, FLOOR_H),
+      plat(680, GROUND_Y, 280, FLOOR_H),
+      // True lower solid walkway
+      plat(240, GROUND_Y + 60, 420, 24),
     ],
     hazards: [
-      spike(255, SPIKE_Y, 140, SPIKE_H),
+      spike(225, SPIKE_Y, 450, SPIKE_H),
     ],
     traps: [
-      // Reactive wall drops to seal upper decoy portal
-      { type: 'reactiveWall', x: 790, y: GROUND_Y - 90, width: 22, height: 90, targetY: GROUND_Y - 20, speed: 3.5, triggerDistance: 130 },
-      // Decoy door placed on upper ledge
-      { type: 'decoyObject', x: 880, y: DOOR_Y, width: 28, height: 28 },
+      // Phantom bridge spanning the upper chasm
+      { type: 'phantomPlatform', x: 240, y: GROUND_Y - 30, width: 420, height: 18 },
     ],
-    secret: { x: 440, y: GROUND_Y - 40, w: 18, h: 18, collected: false },
+    secret: { x: 120, y: GROUND_Y - 80, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 3: "Commitment"
-     Arc 1: Objects behave unexpectedly.
-     A long bridge lined with one-way ratchet teeth. Walking
-     forward is smooth; retreating triggers razor spikes.
-     Solution: Move forward without hesitation.
+     LEVEL 3: "The Third Pillar"
+     Category 8: Confidence Trap
+     Expectation: Three evenly spaced stepping columns are identical.
+     Betrayal: Pillar 1 and 2 are rock solid; pillar 3 drops immediately on contact.
+     Realization: The rhythm was conditioned to bait automated jumping.
      ────────────────────────────────────────────────────── */
   {
     id: 'level_03',
-    title: 'Commitment',
-    subtitle: 'Once you begin, there is no turning back.',
+    title: 'The Third Pillar',
+    subtitle: 'Rhythm is a dangerous habit.',
     difficulty: 2,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 880, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 180, FLOOR_H),                                // start
-      plat(740, GROUND_Y, 220, FLOOR_H),                              // goal
+      plat(0, GROUND_Y, 180, FLOOR_H),
+      plat(240, GROUND_Y - 35, 75, 18),  // Pillar 1: Solid
+      plat(380, GROUND_Y - 35, 75, 18),  // Pillar 2: Solid
+      plat(660, GROUND_Y, 300, FLOOR_H), // Landing
     ],
     hazards: [
-      spike(185, SPIKE_Y, 550, SPIKE_H),
+      spike(185, SPIKE_Y, 470, SPIKE_H),
     ],
     traps: [
-      // One-way return trap across the central bridge
-      { type: 'returnTrap', x: 190, y: GROUND_Y, width: 540, height: 16, forwardBoundaryX: 620 },
+      // Pillar 3 drops immediately on contact
+      { type: 'thirdPillar', x: 520, y: GROUND_Y - 35, width: 75, height: 18, delay: 100 },
     ],
-    secret: { x: 50, y: GROUND_Y - 120, w: 18, h: 18, collected: false },
+    secret: { x: 80, y: GROUND_Y - 110, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 4: "The False Haven"
-     Arc 2: Visual cues can be misleading.
-     A perilous gauntlet with a welcoming "REST ZONE" canopy.
-     Lingering charges a lethal overhead hazard.
-     Solution: Sprint straight through without resting.
+     LEVEL 4: "The Spotlight"
+     Category 10: Attention Trap
+     Expectation: Giant swinging pendulum overhead commands full focus.
+     Betrayal: Staring upward causes player to walk onto silent floor spike trigger.
+     Realization: The swinging blade was visual noise; floor trigger was the threat.
      ────────────────────────────────────────────────────── */
   {
     id: 'level_04',
-    title: 'The False Haven',
-    subtitle: 'Comfort is the most dangerous trap.',
+    title: 'The Spotlight',
+    subtitle: 'Where you look is where you lose.',
     difficulty: 2,
+    spawn: { x: 60, y: SPAWN_Y },
+    exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    platforms: [
+      plat(0, GROUND_Y, 960, FLOOR_H),
+    ],
+    hazards: [],
+    traps: [
+      { type: 'spotlightDecoy', x: 380, y: 0, width: 180, height: 220, triggerX: 470 },
+    ],
+    secret: { x: 500, y: GROUND_Y - 120, w: 18, h: 18, collected: false },
+    completionCondition: 'door',
+  },
+
+  /* ──────────────────────────────────────────────────────
+     LEVEL 5: "The Commitment Gate"
+     Category 2: Timing Assumption
+     Expectation: Overhead crusher operates on a timer or stays still.
+     Betrayal: Crusher snaps down only after player commits mid-air past the threshold.
+     Realization: Jumping committed the trap; a low glide or early jump-cut clears it.
+     ────────────────────────────────────────────────────── */
+  {
+    id: 'level_05',
+    title: 'The Commitment Gate',
+    subtitle: 'The trap waits for your certainty.',
+    difficulty: 2,
+    spawn: { x: 60, y: SPAWN_Y },
+    exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    platforms: [
+      plat(0, GROUND_Y, 220, FLOOR_H),
+      plat(360, GROUND_Y - 25, 90, 18),
+      plat(700, GROUND_Y, 260, FLOOR_H),
+    ],
+    hazards: [
+      spike(225, SPIKE_Y, 470, SPIKE_H),
+    ],
+    traps: [
+      { type: 'commitmentTrigger', x: 530, y: GROUND_Y - 180, width: 60, height: 90, triggerX: 410, targetY: GROUND_Y - 25, speed: 9 },
+    ],
+    secret: { x: 120, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
+    completionCondition: 'door',
+  },
+
+  /* ──────────────────────────────────────────────────────
+     LEVEL 6: "The Steep Angle"
+     Category 3: Spatial Assumption
+     Expectation: Central floating island is wide, flat, and inviting.
+     Betrayal: High vertical approach trajectory trips ceiling drop hazard.
+     Realization: Landing is safe, but high plunge angle trips tripwire; glide low.
+     ────────────────────────────────────────────────────── */
+  {
+    id: 'level_06',
+    title: 'The Steep Angle',
+    subtitle: 'The trajectory matters as much as the target.',
+    difficulty: 2,
+    spawn: { x: 60, y: SPAWN_Y - 90 },
+    exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    platforms: [
+      plat(0, GROUND_Y - 90, 180, FLOOR_H + 90),
+      plat(320, GROUND_Y - 20, 220, 20),
+      plat(680, GROUND_Y, 280, FLOOR_H),
+    ],
+    hazards: [
+      spike(185, SPIKE_Y, 130, SPIKE_H),
+      spike(545, SPIKE_Y, 130, SPIKE_H),
+    ],
+    traps: [
+      { type: 'approachAngleTrap', x: 320, y: GROUND_Y - 20, width: 220, height: 20, maxSafeVy: 3.5, hazardY: GROUND_Y - 150 },
+    ],
+    secret: { x: 740, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
+    completionCondition: 'door',
+  },
+
+  /* ──────────────────────────────────────────────────────
+     LEVEL 7: "The Teetering Ledge"
+     Category 3: Spatial / Fulcrum
+     Expectation: Suspended span is a stable horizontal bridge.
+     Betrayal: Committing weight past the center fulcrum tilts the platform into the pit.
+     Realization: It is a seesaw; land near the pivot anchor to keep it balanced.
+     ────────────────────────────────────────────────────── */
+  {
+    id: 'level_07',
+    title: 'The Teetering Ledge',
+    subtitle: 'Balance is not guaranteed.',
+    difficulty: 3,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
@@ -149,90 +236,174 @@ export const LEVELS = [
       plat(720, GROUND_Y, 240, FLOOR_H),
     ],
     hazards: [
-      spike(205, SPIKE_Y, 190, SPIKE_H),
-      spike(565, SPIKE_Y, 150, SPIKE_H),
+      spike(205, SPIKE_Y, 510, SPIKE_H),
     ],
     traps: [
-      // Fake Safe Zone on the middle island
-      { type: 'fakeSafeZone', x: 400, y: GROUND_Y - 65, width: 160, height: 65, chargeTime: 750 },
+      { type: 'tiltFulcrumTrap', x: 260, y: GROUND_Y - 20, width: 400, height: 18, maxAngle: 0.44 },
     ],
-    secret: { x: 480, y: GROUND_Y - 95, w: 18, h: 18, collected: false },
+    secret: { x: 460, y: GROUND_Y - 80, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 5: "The Misdirected Button"
-     Arc 2: Visual cues can be misleading.
-     A glowing purple orb button screams "PRESS ME", but triggers
-     a curse. An unassuming stone switch is the real trigger.
-     Solution: Ignore the purple orb; step on the stone plate.
+     LEVEL 8: "The Decelerating Barrier"
+     Category 2: Timing / Speed
+     Expectation: Rushing is required to slip under closing door.
+     Betrayal: High sprint speed triggers velocity sensor that slams gate shut.
+     Realization: Rushing was the trigger; approaching calmly leaves the door open.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_05',
-    title: 'The Misdirected Button',
-    subtitle: 'The brightest light is rarely the answer.',
-    difficulty: 2,
+    id: 'level_08',
+    title: 'The Decelerating Barrier',
+    subtitle: 'Haste creates the obstruction.',
+    difficulty: 3,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 260, FLOOR_H),                                // start
-      plat(700, GROUND_Y, 260, FLOOR_H),                              // goal
-      // Switch-activated bridge across pit (group 5)
-      plat(270, GROUND_Y, 420, FLOOR_H, { group: 5, visible: false, solid: false }),
+      plat(0, GROUND_Y, 500, FLOOR_H),
+      plat(570, GROUND_Y, 390, FLOOR_H),
+    ],
+    hazards: [],
+    traps: [
+      { type: 'deceleratingGate', x: 510, y: GROUND_Y - 85, width: 24, height: 85, closedY: GROUND_Y - 5, maxSafeSpeed: 2.7 },
+    ],
+    secret: { x: 250, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
+    completionCondition: 'door',
+  },
+
+  /* ──────────────────────────────────────────────────────
+     LEVEL 9: "The Inverted Chevron"
+     Category 5: Object Identity
+     Expectation: Chevron pad is a launch pad booster.
+     Betrayal: Chevron points downward and slams velocity into the pit.
+     Realization: Glyph points downward; leap cleanly over it to the wall ledge.
+     ────────────────────────────────────────────────────── */
+  {
+    id: 'level_09',
+    title: 'The Inverted Chevron',
+    subtitle: 'Direction is a matter of perception.',
+    difficulty: 3,
+    spawn: { x: 60, y: SPAWN_Y },
+    exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    platforms: [
+      plat(0, GROUND_Y, 260, FLOOR_H),
+      plat(640, GROUND_Y, 320, FLOOR_H),
     ],
     hazards: [
-      spike(265, SPIKE_Y, 430, SPIKE_H),
+      spike(265, SPIKE_Y, 370, SPIKE_H),
     ],
     traps: [
-      // Real timing switch on the starting ledge
-      { type: 'timingSwitch', x: 200, y: GROUND_Y - 30, width: 24, height: 30, duration: 4000, targetGroupId: 5 },
-      // Decoy alluring golden object on upper pedestal
-      { type: 'decoyObject', x: 500, y: GROUND_Y - 140, width: 28, height: 28 },
+      // Downward springboard
+      { type: 'decoySpringboard', x: 380, y: GROUND_Y - 12, width: 70, height: 14 },
     ],
     secret: { x: 120, y: GROUND_Y - 100, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 6: "The Dormant Spike"
-     Arc 2: Visual cues can be misleading.
-     A spike bed is covered by a wooden maintenance plank with
-     a green "INACTIVE" light. Stepping on it pops spikes up.
-     Solution: Leap cleanly over the plank.
+     LEVEL 10: "The Coveted Shortcut"
+     Category 4: Route Assumption
+     Expectation: High shortcut offers fast bypass of lower maze.
+     Betrayal: Taking upper shortcut elevates exit door into ceiling pocket.
+     Realization: The shortcut sabotages the goal; winding lower path is true route.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_06',
-    title: 'The Dormant Spike',
-    subtitle: 'Do not trust disabled machinery.',
-    difficulty: 2,
+    id: 'level_10',
+    title: 'The Coveted Shortcut',
+    subtitle: 'The easy path destroys the destination.',
+    difficulty: 3,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 280, FLOOR_H),
-      plat(640, GROUND_Y, 320, FLOOR_H),
+      plat(0, GROUND_Y, 180, FLOOR_H),
+      // Lower path
+      plat(220, GROUND_Y, 440, FLOOR_H),
+      // Upper shortcut ledge
+      plat(220, GROUND_Y - 120, 240, 18),
+      plat(700, GROUND_Y, 260, FLOOR_H),
     ],
     hazards: [
-      spike(285, SPIKE_Y, 350, SPIKE_H),
+      spike(185, SPIKE_Y, 30, SPIKE_H),
+      spike(665, SPIKE_Y, 30, SPIKE_H),
     ],
     traps: [
-      // Confidence trap covering the spike gap
-      { type: 'confidenceTrap', x: 380, y: GROUND_Y - 15, width: 160, height: 16, dormancyDelay: 280 },
+      { type: 'collapsingShortcut', x: 260, y: GROUND_Y - 140, width: 160, height: 30 },
     ],
-    secret: { x: 720, y: GROUND_Y - 100, w: 18, h: 18, collected: false },
+    secret: { x: 440, y: GROUND_Y - 50, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 7: "Unlearning Jump"
-     Arc 3: Previous knowledge as liability.
-     A massive gap provokes the jump reflex. Jumping drops
-     ceiling spikes. Walking forward reveals an invisible glass bridge.
-     Solution: Do not jump; just walk straight across.
+     LEVEL 11: "The Mimic Portal"
+     Category 5: Object Identity
+     Expectation: Obvious door at the end completes the level.
+     Betrayal: Touching obvious door snaps razor jaws; real door hidden in alcove.
+     Realization: The mimic door lacked authentic golden particles.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_07',
+    id: 'level_11',
+    title: 'The Mimic Portal',
+    subtitle: 'That was not the exit.',
+    difficulty: 3,
+    spawn: { x: 60, y: SPAWN_Y },
+    exit:  { x: 580, y: GROUND_Y - 140, w: DOOR_W, h: DOOR_H }, // True exit in upper alcove
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    platforms: [
+      plat(0, GROUND_Y, 960, FLOOR_H),
+      plat(540, GROUND_Y - 80, 160, 20), // Upper alcove ledge
+    ],
+    hazards: [],
+    traps: [
+      // Mimic door on ground floor
+      { type: 'mimicExit', x: 880, y: DOOR_Y, width: DOOR_W, height: DOOR_H },
+    ],
+    secret: { x: 780, y: GROUND_Y - 60, w: 18, h: 18, collected: false },
+    completionCondition: 'door',
+  },
+
+  /* ──────────────────────────────────────────────────────
+     LEVEL 12: "The Threshold Lock"
+     Category 4: Route / Seal
+     Expectation: Scout forward and retreat if needed.
+     Betrayal: Crossing threshold drops wall behind; hesitation causes floor collapse.
+     Realization: Once crossed, forward momentum is mandatory.
+     ────────────────────────────────────────────────────── */
+  {
+    id: 'level_12',
+    title: 'The Threshold Lock',
+    subtitle: 'Retreat is an illusion.',
+    difficulty: 4,
+    spawn: { x: 60, y: SPAWN_Y },
+    exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    platforms: [
+      plat(0, GROUND_Y, 200, FLOOR_H),
+      plat(280, GROUND_Y, 220, 20),
+      plat(560, GROUND_Y, 400, FLOOR_H),
+    ],
+    hazards: [
+      spike(205, SPIKE_Y, 70, SPIKE_H),
+      spike(505, SPIKE_Y, 50, SPIKE_H),
+    ],
+    traps: [
+      { type: 'routeSealTrap', x: 280, y: 0, width: 20, height: CANVAS_H, triggerX: 280, barrierX: 240 },
+    ],
+    secret: { x: 380, y: GROUND_Y - 60, w: 18, h: 18, collected: false },
+    completionCondition: 'door',
+  },
+
+  /* ──────────────────────────────────────────────────────
+     LEVEL 13: "Unlearning Jump"
+     Category 7: Reversal
+     Expectation: Deep chasm prompts automatic jump reflex.
+     Betrayal: Jumping dematerializes invisible bridge and drops spikes.
+     Realization: Do not jump; walk straight across the glass bridge.
+     ────────────────────────────────────────────────────── */
+  {
+    id: 'level_13',
     title: 'Unlearning Jump',
     subtitle: 'Your instincts are trained to betray you.',
     difficulty: 3,
@@ -240,302 +411,231 @@ export const LEVELS = [
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 240, FLOOR_H),
-      // Invisible solid glass path spanning the chasm
-      plat(240, GROUND_Y, 420, FLOOR_H, { type: 'vanish_on_jump', group: 7 }),
-      plat(660, GROUND_Y, 300, FLOOR_H),
+      plat(0, GROUND_Y, 220, FLOOR_H),
+      plat(680, GROUND_Y, 280, FLOOR_H),
     ],
     hazards: [
-      spike(245, SPIKE_Y, 410, SPIKE_H),
+      spike(225, SPIKE_Y, 450, SPIKE_H),
     ],
     traps: [
-      // Jumping inside the zone collapses the invisible bridge
-      { type: 'vanish_on_jump', triggerZone: { x: 230, y: 0, w: 440, h: GROUND_Y }, group: 7 },
+      { type: 'vanishOnJumpRefined', x: 220, y: GROUND_Y, width: 460, height: FLOOR_H },
     ],
-    secret: { x: 450, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
+    secret: { x: 450, y: GROUND_Y - 80, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 8: "The Polarity Inversion"
-     Arc 3: Previous knowledge as liability.
-     Twin rune paths. Polarity flips deterministically between
-     player attempts.
-     Solution: Read the glowing rune light frequency.
+     LEVEL 14: "The Polarity Inversion"
+     Category 6: Memory
+     Expectation: Diamond platforms were safe; circle platforms collapsed.
+     Betrayal: On alternate retries, polarity flips (Diamond collapses, Circle is safe).
+     Realization: Read the active polarity symbol indicated in room structure.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_08',
+    id: 'level_14',
     title: 'The Polarity Inversion',
     subtitle: 'What worked yesterday will fail today.',
-    difficulty: 3,
+    difficulty: 4,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 220, FLOOR_H),
-      plat(660, GROUND_Y, 300, FLOOR_H),
+      plat(0, GROUND_Y, 180, FLOOR_H),
+      plat(700, GROUND_Y, 260, FLOOR_H),
     ],
     hazards: [
-      spike(225, SPIKE_Y, 430, SPIKE_H),
+      spike(185, SPIKE_Y, 510, SPIKE_H),
     ],
     traps: [
-      // Memory trap spanning the central abyss
-      { type: 'memoryTrap', x: 280, y: GROUND_Y - 30, width: 320, height: 18, collapseDelay: 200 },
+      { type: 'symbolInversion', x: 240, y: GROUND_Y - 30, width: 140, height: 18, symbol: 'diamond' },
+      { type: 'symbolInversion', x: 440, y: GROUND_Y - 30, width: 140, height: 18, symbol: 'circle' },
     ],
     secret: { x: 740, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 9: "The False Beacon"
-     Arc 3: Previous knowledge as liability.
-     A glowing green checkpoint beacon sits midway. Touching
-     it triggers an immediate pit collapse.
-     Solution: Leap cleanly over the fake checkpoint.
+     LEVEL 15: "The Stride Tax"
+     Category 7: Reversal / Kinetic
+     Expectation: Full sprint is always best for speed.
+     Betrayal: Continuous running overheats the thermal floor.
+     Realization: Micro-pause for 150ms to discharge thermal buildup.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_09',
-    title: 'The False Beacon',
-    subtitle: 'Not every checkpoint is a sanctuary.',
-    difficulty: 3,
-    spawn: { x: 60, y: SPAWN_Y },
-    exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
-    camera: { panX: 0, panY: 0, zoom: 1 },
-    platforms: [
-      plat(0, GROUND_Y, 300, FLOOR_H),
-      plat(600, GROUND_Y, 360, FLOOR_H),
-    ],
-    hazards: [
-      spike(305, SPIKE_Y, 290, SPIKE_H),
-    ],
-    traps: [
-      // Middle platform holding the false beacon collapses immediately on touch
-      { type: 'delayedPlatform', x: 400, y: GROUND_Y - 20, width: 80, height: 20, delay: 180 },
-      // Decoy beacon
-      { type: 'decoyObject', x: 428, y: GROUND_Y - 60, width: 24, height: 24 },
-    ],
-    secret: { x: 540, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
-    completionCondition: 'door',
-  },
-
-  /* ──────────────────────────────────────────────────────
-     LEVEL 10: "Kinetic Commitment"
-     Arc 4: Combine two concepts.
-     Frictionless momentum runway leading into a one-way return trap.
-     Solution: Ride the slide and jump without trying to brake backward.
-     ────────────────────────────────────────────────────── */
-  {
-    id: 'level_10',
-    title: 'Kinetic Commitment',
-    subtitle: 'Friction is gone. Hesitation is fatal.',
-    difficulty: 3,
+    id: 'level_15',
+    title: 'The Stride Tax',
+    subtitle: 'Velocity carries an unseen charge.',
+    difficulty: 4,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
       plat(0, GROUND_Y, 180, FLOOR_H),
-      plat(760, GROUND_Y, 200, FLOOR_H),
+      plat(740, GROUND_Y, 220, FLOOR_H),
     ],
     hazards: [
-      spike(185, SPIKE_Y, 570, SPIKE_H),
+      spike(185, SPIKE_Y, 550, SPIKE_H),
     ],
     traps: [
-      // Frictionless ice runway
-      { type: 'momentumTrap', x: 200, y: GROUND_Y - 15, width: 260, height: 18, mode: 'frictionless' },
-      // Return trap right after landing
-      { type: 'returnTrap', x: 480, y: GROUND_Y - 15, width: 260, height: 18, forwardBoundaryX: 680 },
+      { type: 'stopAndGo', x: 200, y: GROUND_Y - 15, width: 520, height: 18, maxHeat: 680 },
     ],
-    secret: { x: 330, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
+    secret: { x: 460, y: GROUND_Y - 70, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 11: "The Shifting Staircase"
-     Arc 4: Combine two concepts.
-     Ascending delayed platforms underneath a reactive wall.
-     Solution: Bait the reactive wall, then sprint across the collapsing steps.
+     LEVEL 16: "Polarity Shift"
+     Category 7: Reversal / Controls
+     Expectation: Normal steering through mid-air energy field.
+     Betrayal: Field inverts left/right steering mid-jump.
+     Realization: Steer opposite while crossing the blue field.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_11',
-    title: 'The Shifting Staircase',
-    subtitle: 'Watch above as carefully as below.',
-    difficulty: 4,
-    spawn: { x: 60, y: SPAWN_Y },
-    exit:  { x: 880, y: GROUND_Y - 120, w: DOOR_W, h: DOOR_H },
-    camera: { panX: 0, panY: 0, zoom: 1 },
-    platforms: [
-      plat(0, GROUND_Y, 200, FLOOR_H),
-      plat(680, GROUND_Y - 60, 280, FLOOR_H + 60),
-    ],
-    hazards: [
-      spike(205, SPIKE_Y, 470, SPIKE_H),
-    ],
-    traps: [
-      // Delayed step 1
-      { type: 'delayedPlatform', x: 260, y: GROUND_Y - 20, width: 85, height: 18, delay: 650 },
-      // Delayed step 2
-      { type: 'delayedPlatform', x: 380, y: GROUND_Y - 50, width: 85, height: 18, delay: 550 },
-      // Delayed step 3
-      { type: 'delayedPlatform', x: 500, y: GROUND_Y - 80, width: 85, height: 18, delay: 550 },
-      // Overhead reactive wall drops down when jumping
-      { type: 'reactiveWall', x: 600, y: GROUND_Y - 220, width: 24, height: 110, targetY: GROUND_Y - 130, speed: 2.8, triggerDistance: 130 },
-    ],
-    secret: { x: 100, y: GROUND_Y - 100, w: 18, h: 18, collected: false },
-    completionCondition: 'door',
-  },
-
-  /* ──────────────────────────────────────────────────────
-     LEVEL 12: "The Timed Sanctuary"
-     Arc 4: Combine two concepts.
-     A timing switch deploys a bridge across spikes, but the bridge
-     crosses directly through a fake safe zone.
-     Solution: Hit the switch and sprint without lingering in the safe zone.
-     ────────────────────────────────────────────────────── */
-  {
-    id: 'level_12',
-    title: 'The Timed Sanctuary',
-    subtitle: 'Haste and patience in contradiction.',
+    id: 'level_16',
+    title: 'Polarity Shift',
+    subtitle: 'Your hands disagree with your eyes.',
     difficulty: 4,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
       plat(0, GROUND_Y, 220, FLOOR_H),
-      plat(760, GROUND_Y, 200, FLOOR_H),
-      // Timed bridge (group 12)
-      plat(240, GROUND_Y, 500, FLOOR_H, { group: 12, visible: false, solid: false }),
+      plat(640, GROUND_Y, 320, FLOOR_H),
     ],
     hazards: [
-      spike(225, SPIKE_Y, 530, SPIKE_H),
+      spike(225, SPIKE_Y, 410, SPIKE_H),
     ],
     traps: [
-      // Timing switch
-      { type: 'timingSwitch', x: 180, y: GROUND_Y - 30, width: 24, height: 30, duration: 3800, targetGroupId: 12 },
-      // Fake safe zone on the bridge
-      { type: 'fakeSafeZone', x: 440, y: GROUND_Y - 65, width: 140, height: 65, chargeTime: 700 },
+      { type: 'polarityShiftField', x: 340, y: GROUND_Y - 140, width: 180, height: 140 },
     ],
-    secret: { x: 510, y: GROUND_Y - 95, w: 18, h: 18, collected: false },
+    secret: { x: 740, y: GROUND_Y - 90, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 13: "The Gauntlet of Second Guesses"
-     Arc 5: Multi-stage psychological setups.
-     Stage 1: Delayed step. Stage 2: Rune polarity gate. Stage 3: Decoy.
-     Solution: Master all 3 stages sequentially.
+     LEVEL 17: "The Glitched Cadence"
+     Category 9: Pattern Disruption
+     Expectation: Oscillating steps follow predictable 1-2-1-2 rhythm.
+     Betrayal: Step 4 has a deterministic phase hitch, throwing off timing.
+     Realization: Watch the light pulse to time the metric exception.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_13',
-    title: 'The Gauntlet of Second Guesses',
-    subtitle: 'Every step asks a question.',
+    id: 'level_17',
+    title: 'The Glitched Cadence',
+    subtitle: 'Patterns are promises waiting to break.',
     difficulty: 4,
     spawn: { x: 60, y: SPAWN_Y },
     exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
       plat(0, GROUND_Y, 180, FLOOR_H),
-      plat(440, GROUND_Y, 120, FLOOR_H),
-      plat(780, GROUND_Y, 180, FLOOR_H),
+      plat(240, GROUND_Y - 40, 80, 18),
+      plat(380, GROUND_Y - 40, 80, 18),
+      plat(700, GROUND_Y, 260, FLOOR_H),
     ],
     hazards: [
-      spike(185, SPIKE_Y, 250, SPIKE_H),
-      spike(565, SPIKE_Y, 210, SPIKE_H),
+      spike(185, SPIKE_Y, 510, SPIKE_H),
     ],
     traps: [
-      // Stage 1: Delayed platform
-      { type: 'delayedPlatform', x: 230, y: GROUND_Y - 25, width: 90, height: 18, delay: 600 },
-      // Stage 2: Memory rune trap on the second gap
-      { type: 'memoryTrap', x: 580, y: GROUND_Y - 25, width: 180, height: 18, collapseDelay: 220 },
-      // Stage 3: Decoy golden artifact near the door
-      { type: 'decoyObject', x: 840, y: DOOR_Y - 60, width: 24, height: 24 },
+      { type: 'patternDisruption', x: 520, y: GROUND_Y - 40, width: 85, height: 18, stepIndex: 3 },
     ],
-    secret: { x: 500, y: GROUND_Y - 60, w: 18, h: 18, collected: false },
+    secret: { x: 120, y: GROUND_Y - 110, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 14: "The Mirror of Assumptions"
-     Arc 5: Multi-stage psychological setups.
-     Upper advertised "SAFE ROUTE" is loaded with reactive walls.
-     Lower dark conduit is completely calm and safe.
-     Solution: Reject the advertised route and take the lower path.
+     LEVEL 18: "The Fleeing Goalpost"
+     Category 10: Attention / Spatial
+     Expectation: Sprinting into the visible exit door completes the room.
+     Betrayal: Sprinting causes the door to slide away into a pit.
+     Realization: Approach at controlled pace to enter safely.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_14',
-    title: 'The Mirror of Assumptions',
-    subtitle: 'Safety announced is safety compromised.',
+    id: 'level_18',
+    title: 'The Fleeing Goalpost',
+    subtitle: 'Greed repels the objective.',
     difficulty: 4,
     spawn: { x: 60, y: SPAWN_Y },
-    exit:  { x: 890, y: GROUND_Y, w: DOOR_W, h: DOOR_H },
+    exit:  { x: 880, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 180, FLOOR_H),                                // start
-      plat(220, GROUND_Y - 100, 480, 20),                             // upper "advertised" route
-      plat(220, GROUND_Y + 10, 480, 20),                              // lower dark quiet route
-      plat(740, GROUND_Y, 220, FLOOR_H),                              // goal
+      plat(0, GROUND_Y, 960, FLOOR_H),
     ],
     hazards: [
-      spike(185, SPIKE_Y, 30, SPIKE_H),
+      spike(650, SPIKE_Y, 80, SPIKE_H),
     ],
     traps: [
-      // Upper route reactive walls and drop traps
-      { type: 'reactiveWall', x: 440, y: GROUND_Y - 190, width: 22, height: 85, targetY: GROUND_Y - 110, speed: 3.5, triggerDistance: 120 },
-      { type: 'delayedPlatform', x: 540, y: GROUND_Y - 100, width: 90, height: 20, delay: 450 },
+      { type: 'shiftingExit', x: 880, y: DOOR_Y, shiftDist: 160 },
     ],
-    secret: { x: 460, y: GROUND_Y - 10, w: 18, h: 18, collected: false },
+    secret: { x: 440, y: GROUND_Y - 80, w: 18, h: 18, collected: false },
     completionCondition: 'door',
   },
 
   /* ──────────────────────────────────────────────────────
-     LEVEL 15: "That Was Not There"
-     Arc 5: Grand Finale.
-     Starts as a peaceful corridor with a golden door.
-     Approaching triggers falseExit lockdown and reveals the true
-     exit on the high balcony. A timing switch and kinetic bridge
-     must be used to ascend to the summit.
-     Solution: Synthesize all learned psychological mechanics!
+     LEVEL 19: "The Reluctant Haven"
+     Category 8: Confidence / Timing
+     Expectation: Green haven platform provides resting sanctuary.
+     Betrayal: Lingering inside > 450ms charges lethal electrical discharge.
+     Realization: Sanctuary is temporary; keep moving immediately.
      ────────────────────────────────────────────────────── */
   {
-    id: 'level_15',
+    id: 'level_19',
+    title: 'The Reluctant Haven',
+    subtitle: 'Comfort is the prelude to failure.',
+    difficulty: 4,
+    spawn: { x: 60, y: SPAWN_Y },
+    exit:  { x: 890, y: DOOR_Y, w: DOOR_W, h: DOOR_H },
+    camera: { panX: 0, panY: 0, zoom: 1 },
+    platforms: [
+      plat(0, GROUND_Y, 200, FLOOR_H),
+      plat(360, GROUND_Y - 50, 160, 20),
+      plat(700, GROUND_Y, 260, FLOOR_H),
+    ],
+    hazards: [
+      spike(205, SPIKE_Y, 150, SPIKE_H),
+      spike(525, SPIKE_Y, 170, SPIKE_H),
+    ],
+    traps: [
+      { type: 'safeZone', x: 360, y: GROUND_Y - 90, width: 160, height: 60, maxStay: 450 },
+    ],
+    secret: { x: 440, y: GROUND_Y - 120, w: 18, h: 18, collected: false },
+    completionCondition: 'door',
+  },
+
+  /* ──────────────────────────────────────────────────────
+     LEVEL 20: "That Was Not There"
+     Grand Psychological Synthesis Finale
+     Ground door is a mimic trap. True exit is on the summit balcony.
+     Combines commitment trigger, shifting platforms, and mimic portal.
+     ────────────────────────────────────────────────────── */
+  {
+    id: 'level_20',
     title: 'That Was Not There',
     subtitle: 'Nothing was ever really there.',
     difficulty: 5,
     spawn: { x: 60, y: SPAWN_Y },
-    exit:  { x: 870, y: 110, w: DOOR_W, h: DOOR_H },                // real exit on observation deck
+    exit:  { x: 870, y: 110, w: DOOR_W, h: DOOR_H }, // True summit exit
     camera: { panX: 0, panY: 0, zoom: 1 },
     platforms: [
-      plat(0, GROUND_Y, 200, FLOOR_H),                                // start
-      plat(240, GROUND_Y - 50, 110, 18),                              // step 1
-      plat(420, GROUND_Y - 110, 110, 18),                             // step 2 (delayed)
-      plat(600, GROUND_Y - 170, 110, 18),                             // step 3
-      plat(800, 166, 160, 20),                                        // summit observation deck (exit location)
-      plat(580, GROUND_Y, 380, FLOOR_H),                              // lower floor holding false door
-      // Switch-activated ascending bridge (group 15)
-      plat(640, GROUND_Y - 90, 120, 18, { group: 15, visible: false, solid: false }),
+      plat(0, GROUND_Y, 200, FLOOR_H),
+      plat(240, GROUND_Y - 50, 100, 18),
+      plat(400, GROUND_Y - 110, 100, 18),
+      plat(580, GROUND_Y - 170, 100, 18),
+      plat(780, 166, 180, 20),           // Summit balcony
+      plat(560, GROUND_Y, 400, FLOOR_H), // Ground floor holding mimic door
     ],
     hazards: [
-      spike(205, SPIKE_Y, 370, SPIKE_H),
+      spike(205, SPIKE_Y, 350, SPIKE_H),
     ],
     traps: [
-      // False exit on lower floor
-      {
-        type: 'falseExit',
-        x: 880,
-        y: DOOR_Y,
-        width: DOOR_W,
-        height: DOOR_H,
-        triggerRadius: 110,
-        realExitX: 870,
-        realExitY: 110,
-      },
-      // Timing switch on step 1 to deploy summit bridge
-      { type: 'timingSwitch', x: 290, y: GROUND_Y - 80, width: 24, height: 30, duration: 4200, targetGroupId: 15 },
-      // Delayed platform on step 2
-      { type: 'delayedPlatform', x: 420, y: GROUND_Y - 110, width: 110, height: 18, delay: 650 },
-      // Reactive wall guarding the summit deck
-      { type: 'reactiveWall', x: 770, y: 90, width: 20, height: 80, targetY: 150, speed: 2, triggerDistance: 110 },
+      // Mimic exit on ground floor
+      { type: 'mimicExit', x: 880, y: DOOR_Y, width: DOOR_W, height: DOOR_H },
+      // Delayed step on middle ascent
+      { type: 'delayedPlatform', x: 400, y: GROUND_Y - 110, width: 100, height: 18, delay: 600 },
+      // Commitment trigger guarding summit leap
+      { type: 'commitmentTrigger', x: 720, y: 70, width: 40, height: 70, triggerX: 610, targetY: 140, speed: 7 },
     ],
-    secret: { x: 860, y: 50, w: 20, h: 20, collected: false },
+    secret: { x: 860, y: 60, w: 20, h: 20, collected: false },
     completionCondition: 'door',
   },
 ];
@@ -551,7 +651,6 @@ export function getLevelDef(index) {
 
 /**
  * Return a clean deep copy for the active game state.
- * Adding level 16 requires only appending to LEVELS above!
  */
 export function loadLevel(index) {
   const d = LEVELS[index] || LEVELS[0];
@@ -565,7 +664,7 @@ export function loadLevel(index) {
     camera:      d.camera ? { ...d.camera } : { panX: 0, panY: 0, zoom: 1 },
     platforms:   d.platforms.map(p => ({ ...p })),
     hazards:     (d.hazards || []).map(h => ({ ...h })),
-    spikes:      (d.hazards || []).map(h => ({ ...h })), // alias for collision
+    spikes:      (d.hazards || []).map(h => ({ ...h })),
     traps:       (d.traps || []).map(t => ({ ...t })),
     scriptedEvents: (d.scriptedEvents || []).map(e => ({ ...e, triggered: false })),
     secret:      d.secret ? { ...d.secret, collected: false } : null,

@@ -2111,6 +2111,14 @@ export const TrapRegistry = {
     this.registry.set(type, trapClass);
   },
 
+  has(type) {
+    return this.registry.has(type);
+  },
+
+  get(type) {
+    return this.registry.get(type);
+  },
+
   create(config) {
     const TrapClass = this.registry.get(config.type);
     if (!TrapClass) {
