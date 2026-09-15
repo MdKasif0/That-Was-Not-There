@@ -1,4 +1,5 @@
 import { CANVAS_W, CANVAS_H, C, DEATH_FREEZE, TRANSITION_MS } from './constants.js';
+import { getLevelCount } from './levels.js';
 
 /* ═══════════════════════════════════════════════════════════
    MAIN ENTRY — called once per frame from game.js
@@ -464,9 +465,9 @@ function drawHUD(ctx, s) {
   /* 1. Room label — top left */
   ctx.textAlign = 'left';
   ctx.fillStyle = C.text;
-  ctx.font = '600 13px "JetBrains Mono", "SF Mono", "Segoe UI Mono", monospace';
+  const total = getLevelCount();
   const roomIndex = String(s.currentLevel + 1).padStart(2, '0');
-  ctx.fillText(`${roomIndex} / 15`, 18, 16);
+  ctx.fillText(`${roomIndex} / ${String(total).padStart(2, '0')}`, 18, 16);
 
   /* 2. Room subtitle */
   if (s.levelDef) {
@@ -658,7 +659,7 @@ function drawComplete(ctx, s) {
   const secrets = s.secretsCollected ? s.secretsCollected.length : 0;
   ctx.fillStyle = C.secretStar;
   ctx.font = '600 15px "JetBrains Mono", monospace';
-  ctx.fillText(`◆ SECRETS FOUND: ${secrets} / 15`, cx, cy + 24);
+  ctx.fillText(`◆ SECRETS FOUND: ${secrets} / ${total}`, cx, cy + 24);
 
   ctx.fillStyle = C.textDim;
   ctx.font = 'italic 500 13px "JetBrains Mono", monospace';
