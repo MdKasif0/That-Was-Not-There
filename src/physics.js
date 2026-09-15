@@ -13,12 +13,15 @@ import { resolveHorizontalCollisions, resolveVerticalCollisions } from './collis
 export function updatePlayer(player, input, platforms) {
   /* ── 1. Horizontal acceleration / deceleration ─────── */
   const accel = player.grounded ? GROUND_ACCEL : AIR_ACCEL;
-  const decel = player.grounded ? GROUND_DECEL : AIR_DECEL;
+  const decel = player.grounded ? (player.slippery ? 0.98 : GROUND_DECEL) : AIR_DECEL;
 
-  if (input.left && !input.right) {
+  const moveLeft  = player.controlsInverted ? (input.right && !input.left) : (input.left && !input.right);
+  const moveRight = player.controlsInverted ? (input.left && !input.right) : (input.right && !input.left);
+
+  if (moveLeft) {
     player.vx -= accel;
     player.facingRight = false;
-  } else if (input.right && !input.left) {
+  } else if (moveRight) {
     player.vx += accel;
     player.facingRight = true;
   } else {
