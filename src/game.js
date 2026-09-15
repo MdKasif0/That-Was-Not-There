@@ -2,7 +2,7 @@ import { CANVAS_W, CANVAS_H, DEATH_FREEZE, TRANSITION_MS, C } from './constants.
 import { createGameState }                      from './state.js';
 import { keys, updateInput, consumeAnyKey, consumeRestart, consumePause } from './input.js';
 import { updatePlayer, updatePlayerGroundDist, checkBounds }            from './physics.js';
-import { aabb, checkSpikeCollision, checkDoorCollision } from './collision.js';
+import { aabb, checkSpikeCollision, getCollidingSpike, checkDoorCollision } from './collision.js';
 import { loadLevel, getLevelCount }              from './levels.js';
 import { TrapRegistry }                          from './traps.js';
 import { render }                                from './renderer.js';
@@ -19,6 +19,7 @@ export function initGame(context, devicePixelRatio) {
   ctx   = context;
   dpr   = devicePixelRatio;
   state = createGameState();
+  state.killPlayer = (cause) => die(cause);
   if (typeof window !== 'undefined') {
     window.__gameState = state;
     window.__beginLevel = beginLevel;
@@ -118,7 +119,24 @@ function tickPlaying(dt) {
   updatePlayer(p, keys, state.platforms);
   updatePlayerGroundDist(p, state.platforms);
 
-  if (checkBounds(p))                          { die(); return; }
+  // Record motion history for echo shadow traps
+  if (state.currentRunEcho && state.currentRunEcho.length < 1200) {
+    state.currentRunEcho.push({ x: p.x, y: p.y, facingRight: p.facingRight });
+  }
+
+  // Decay causal echo watermark during gameplay
+  if (state.causalEcho) {
+    state.causalEcho.timer -= dt;
+    state.causalEcho.alpha = Math.max(0, (state.causalEcho.timer / 1600) * 0.28);
+    if (state.causalEcho.timer <= 0) {
+      state.causalEcho = null;
+    }
+  }
+
+  if (checkBounds(p)) {
+    die({ x: p.x, y: CANVAS_H - 12, w: p.w, h: 12, type: 'abyss', label: 'VOID' });
+    return;
+  }
 
   for (const trap of state.traps) {
     trap.update(p, state, dt);
@@ -156,7 +174,11 @@ function tickPlaying(dt) {
     }
   }
 
-  if (checkSpikeCollision(p, state.spikes))    { die(); return; }
+  const hitSpike = getCollidingSpike(p, state.spikes);
+  if (hitSpike) {
+    die({ x: hitSpike.x, y: hitSpike.y, w: hitSpike.w, h: hitSpike.h, type: 'spike', label: 'HAZARD' });
+    return;
+  }
 
   // Completion condition check
   const completed = (state.levelDef && typeof state.levelDef.completionCondition === 'function')
@@ -208,6 +230,9 @@ function tickComplete() {
 function beginLevel(index) {
   state.currentLevel = index;
   state.levelAttempts = 0;
+  state.causalEcho = null;
+  state.lastRunEcho = [];
+  state.currentRunEcho = [];
   const lv = loadLevel(index);
   state.levelDef   = lv;
   state.platforms  = lv.platforms;
@@ -230,6 +255,19 @@ function beginLevel(index) {
 
 function resetLevel() {
   state.levelAttempts = (state.levelAttempts || 0) + 1;
+
+  // Preserve previous run echo for EchoTrailTrap
+  if (state.currentRunEcho && state.currentRunEcho.length > 0) {
+    state.lastRunEcho = [...state.currentRunEcho];
+  }
+  state.currentRunEcho = [];
+
+  // Soften causal echo on retry so it serves as a subtle watermark
+  if (state.causalEcho) {
+    state.causalEcho.alpha = Math.min(state.causalEcho.alpha, 0.28);
+    state.causalEcho.timer = 1600;
+  }
+
   const lv = loadLevel(state.currentLevel);
   state.levelDef   = lv;
   state.platforms  = lv.platforms;
@@ -255,6 +293,7 @@ function resetPlayer(spawn) {
   p.vx = 0;  p.vy = 0;
   p.grounded = false;
   p.alive = true;
+  p.controlsInverted = false;
   p.coyoteTimer = 0;
   p.jumpBuffer  = 0;
   p.squish = 0;
@@ -269,11 +308,26 @@ function resetPlayer(spawn) {
 /* ═══════════════════════════════════════════════════════════
    DEATH / WIN
    ═══════════════════════════════════════════════════════════ */
-function die() {
+function die(causeInfo) {
+  if (!state.player.alive) return;
   state.player.alive = false;
   state.deaths++;
   const cx = state.player.x + state.player.w / 2;
   const cy = state.player.y + state.player.h / 2;
+
+  // Causal Echo for subtle post-death realization
+  state.causalEcho = {
+    x: causeInfo?.x ?? cx - 15,
+    y: causeInfo?.y ?? cy - 15,
+    w: causeInfo?.w ?? 30,
+    h: causeInfo?.h ?? 30,
+    type: causeInfo?.type ?? 'hazard',
+    label: causeInfo?.label ?? '',
+    fromX: cx,
+    fromY: cy,
+    alpha: 0.95,
+    timer: 1600,
+  };
 
   // Subtle impact shockwave ring
   state.deathRing = { x: cx, y: cy, radius: 4, alpha: 0.95 };

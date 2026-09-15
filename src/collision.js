@@ -75,12 +75,16 @@ export function resolveCollisions(player, platforms) {
  * Check player vs spike collision (uses a slightly forgiving hitbox).
  */
 export function checkSpikeCollision(player, spikes) {
+  return !!getCollidingSpike(player, spikes);
+}
+
+export function getCollidingSpike(player, spikes) {
   for (const s of spikes) {
     if (!s.active) continue;
     const box = { x: s.x + 4, y: s.y + 4, w: s.w - 8, h: s.h - 8 };
-    if (aabb(player, box)) return true;
+    if (aabb(player, box)) return s;
   }
-  return false;
+  return null;
 }
 
 /**

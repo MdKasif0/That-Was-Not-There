@@ -1,4 +1,4 @@
-import { C, CANVAS_W, CANVAS_H, GRAVITY } from './constants.js';
+import { C, CANVAS_W, CANVAS_H, GRAVITY, GROUND_Y } from './constants.js';
 import { aabb } from './collision.js';
 
 /* ═══════════════════════════════════════════════════════════
@@ -1201,6 +1201,907 @@ export class VanishOnJumpTrap extends Trap {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   20 UNIQUE PSYCHOLOGICAL TRAPS (10 CATEGORIES)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Category 1: Visual Assumption ──────────────────────── */
+
+/** 1. Phantom Platform: looks solid with bevel, but has no collision */
+export class PhantomPlatformTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.revealed = false;
+  }
+  update(player) {
+    if (aabb(player, { x: this.x, y: this.y, w: this.width, h: this.height })) {
+      this.revealed = true;
+      this.visualState = 'revealed';
+    }
+  }
+  reset() {
+    super.reset();
+    this.revealed = false;
+  }
+  render(ctx) {
+    if (!this.visible) return;
+    const px = this.x;
+    const py = this.y;
+    ctx.save();
+    if (this.revealed) {
+      ctx.strokeStyle = 'rgba(255, 60, 90, 0.75)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(px, py, this.width, this.height);
+      ctx.fillStyle = 'rgba(255, 60, 90, 0.08)';
+      ctx.fillRect(px, py, this.width, this.height);
+    } else {
+      ctx.fillStyle = C.platform;
+      ctx.fillRect(px, py, this.width, this.height);
+      ctx.fillStyle = C.platformTop;
+      ctx.fillRect(px, py, this.width, 3);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.setLineDash([3, 6]);
+      ctx.strokeRect(px, py, this.width, this.height);
+    }
+    ctx.restore();
+  }
+}
+
+/** 2. Camouflage Hazard: platform trim that snaps upward razor spines */
+export class CamouflageHazardTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.spinesExtended = 0;
+    this.armed = false;
+  }
+  update(player, state, dt) {
+    const standing = player.grounded &&
+      player.x + player.w > this.x && player.x < this.x + this.width &&
+      Math.abs((player.y + player.h) - this.y) < 6;
+    if (standing) {
+      this.armed = true;
+      this.spinesExtended = Math.min(1, this.spinesExtended + dt * 0.012);
+      if (this.spinesExtended > 0.35 && state.killPlayer) {
+        state.killPlayer({ x: this.x, y: this.y - 14, w: this.width, h: 18, type: 'camouflage', label: 'CONCEALED SPINES' });
+      }
+    } else if (this.armed) {
+      this.spinesExtended = Math.min(1, this.spinesExtended + dt * 0.005);
+    }
+  }
+  reset() {
+    super.reset();
+    this.spinesExtended = 0;
+    this.armed = false;
+  }
+  render(ctx) {
+    const px = this.x;
+    const py = this.y;
+    ctx.fillStyle = '#0f131c';
+    ctx.fillRect(px, py, this.width, 4);
+    if (this.spinesExtended > 0) {
+      const h = this.spinesExtended * 14;
+      const count = Math.max(3, Math.floor(this.width / 14));
+      ctx.fillStyle = C.spikeCore;
+      for (let i = 0; i < count; i++) {
+        const sx = px + (i * (this.width / count)) + 2;
+        ctx.beginPath();
+        ctx.moveTo(sx, py);
+        ctx.lineTo(sx + 5, py - h);
+        ctx.lineTo(sx + 10, py);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+  }
+}
+
+/* ── Category 2: Timing Assumption ──────────────────────── */
+
+/** 3. Commitment Trigger: crusher motionless until player jumps mid-air */
+export class CommitmentTriggerTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.initialY = config.y;
+    this.targetY = config.targetY ?? config.y + 110;
+    this.triggerX = config.triggerX ?? config.x;
+    this.speed = config.speed ?? 8.5;
+    this.currentY = config.y;
+  }
+  update(player, state, dt) {
+    if (!this.triggered) {
+      if (!player.grounded && player.x + player.w / 2 > this.triggerX) {
+        this.triggered = true;
+      }
+    } else {
+      if (this.currentY < this.targetY) {
+        this.currentY = Math.min(this.targetY, this.currentY + this.speed * (dt / 16.67));
+      }
+      const box = { x: this.x, y: this.currentY, w: this.width, h: this.height };
+      if (aabb(player, box) && state.killPlayer) {
+        state.killPlayer({ x: this.x, y: this.currentY, w: this.width, h: this.height, type: 'commitment', label: 'COMMITTED JUMP CRUSHER' });
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.currentY = this.initialY;
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = '#1c202d';
+    ctx.fillRect(this.x, this.currentY, this.width, this.height);
+    ctx.strokeStyle = this.triggered ? C.spikeCore : 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(this.x, this.currentY, this.width, this.height);
+    ctx.fillStyle = C.spikeCore;
+    const count = Math.max(2, Math.floor(this.width / 12));
+    for (let i = 0; i < count; i++) {
+      const tx = this.x + i * 12 + 2;
+      ctx.beginPath();
+      ctx.moveTo(tx, this.currentY + this.height);
+      ctx.lineTo(tx + 4, this.currentY + this.height + 6);
+      ctx.lineTo(tx + 8, this.currentY + this.height);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/** 4. Decelerating Gate: stays open if moving calmly; slams shut if sprinting */
+export class DeceleratingGateTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.initialY = config.y;
+    this.closedY = config.closedY ?? config.y + 80;
+    this.currentY = config.y;
+    this.maxSafeSpeed = config.maxSafeSpeed ?? 2.8;
+    this.gatePlatform = null;
+  }
+  init(state) {
+    this.gatePlatform = {
+      x: this.x,
+      y: this.currentY,
+      w: this.width,
+      h: this.height,
+      visible: true,
+      solid: true,
+      type: 'gate',
+    };
+    state.platforms.push(this.gatePlatform);
+  }
+  update(player, state, dt) {
+    const dist = Math.abs((player.x + player.w / 2) - (this.x + this.width / 2));
+    if (dist < 140 && Math.abs(player.vx) > this.maxSafeSpeed) {
+      this.triggered = true;
+    }
+    if (this.triggered && this.currentY < this.closedY) {
+      this.currentY = Math.min(this.closedY, this.currentY + dt * 0.45);
+      if (this.gatePlatform) this.gatePlatform.y = this.currentY;
+    }
+    if (this.triggered && aabb(player, { x: this.x, y: this.currentY, w: this.width, h: this.height }) && state.killPlayer) {
+      state.killPlayer({ x: this.x, y: this.currentY, w: this.width, h: this.height, type: 'speed_slam', label: 'SPEED SENSOR SLAM' });
+    }
+  }
+  reset() {
+    super.reset();
+    this.currentY = this.initialY;
+    if (this.gatePlatform) this.gatePlatform.y = this.initialY;
+  }
+  render(ctx) {
+    ctx.fillStyle = '#222838';
+    ctx.fillRect(this.x, this.currentY, this.width, this.height);
+    ctx.strokeStyle = this.triggered ? C.spikeCore : 'rgba(0, 240, 255, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(this.x, this.currentY, this.width, this.height);
+  }
+}
+
+/* ── Category 3: Spatial Assumption ─────────────────────── */
+
+/** 5. Approach Angle Sensor: high steep landing drops hazard; low glide is safe */
+export class ApproachAngleTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.maxSafeVy = config.maxSafeVy ?? 4.2;
+    this.hazardActive = false;
+    this.hazardY = config.hazardY ?? config.y - 120;
+    this.currentHazardY = this.hazardY;
+  }
+  update(player, state, dt) {
+    const onIsland = player.x + player.w > this.x && player.x < this.x + this.width;
+    if (onIsland && player.y + player.h <= this.y + 12 && player.y + player.h >= this.y - 30) {
+      if (player.vy > this.maxSafeVy) {
+        this.hazardActive = true;
+      }
+    }
+    if (this.hazardActive) {
+      this.currentHazardY = Math.min(this.y - 18, this.currentHazardY + dt * 0.6);
+      const hazardBox = { x: this.x + 10, y: this.currentHazardY, w: this.width - 20, h: 20 };
+      if (aabb(player, hazardBox) && state.killPlayer) {
+        state.killPlayer({ x: this.x + 10, y: this.currentHazardY, w: this.width - 20, h: 20, type: 'steep_angle', label: 'HIGH ANGLE CEILING DROP' });
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.hazardActive = false;
+    this.currentHazardY = this.hazardY;
+  }
+  render(ctx) {
+    if (this.hazardActive) {
+      ctx.fillStyle = C.spikeCore;
+      ctx.fillRect(this.x + 10, this.currentHazardY, this.width - 20, 20);
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(this.x + 10, this.currentHazardY, this.width - 20, 20);
+    }
+  }
+}
+
+/** 6. Tilt Fulcrum: seesaw platform tips when landing past center pivot */
+export class TiltFulcrumTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.pivotX = config.x + config.width / 2;
+    this.angle = 0;
+    this.maxAngle = config.maxAngle ?? 0.44;
+    this.platform = null;
+  }
+  init(state) {
+    this.platform = {
+      x: this.x,
+      y: this.y,
+      w: this.width,
+      h: this.height,
+      visible: true,
+      solid: true,
+      type: 'fulcrum',
+    };
+    state.platforms.push(this.platform);
+  }
+  update(player, state, dt) {
+    const standing = player.grounded &&
+      player.x + player.w > this.x && player.x < this.x + this.width &&
+      Math.abs((player.y + player.h) - this.y) < 8;
+
+    if (standing) {
+      const dx = (player.x + player.w / 2) - this.pivotX;
+      if (Math.abs(dx) > 10) {
+        this.angle += (dx / (this.width / 2)) * 0.003 * dt;
+        this.angle = Math.max(-this.maxAngle, Math.min(this.maxAngle, this.angle));
+        player.x += this.angle * 1.8;
+      }
+      if (Math.abs(this.angle) >= this.maxAngle * 0.9) {
+        this.platform.solid = false;
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.angle = 0;
+    if (this.platform) this.platform.solid = true;
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = '#222838';
+    ctx.beginPath();
+    ctx.moveTo(this.pivotX - 10, this.y + this.height + 16);
+    ctx.lineTo(this.pivotX, this.y + this.height);
+    ctx.lineTo(this.pivotX + 10, this.y + this.height + 16);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.translate(this.pivotX, this.y + this.height / 2);
+    ctx.rotate(this.angle);
+    ctx.fillStyle = C.platform;
+    ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+    ctx.fillStyle = C.platformTop;
+    ctx.fillRect(-this.width / 2, -this.height / 2, this.width, 3);
+    ctx.restore();
+  }
+}
+
+/* ── Category 4: Route Assumption ───────────────────────── */
+
+/** 7. Collapsing Shortcut: upper shortcut triggers exit elevation */
+export class CollapsingShortcutTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.shortcutTaken = false;
+  }
+  update(player, state) {
+    if (!this.shortcutTaken && aabb(player, { x: this.x, y: this.y, w: this.width, h: this.height })) {
+      this.shortcutTaken = true;
+      if (state.door) {
+        state.door.y -= 140;
+        state.particles.push({
+          x: state.door.x,
+          y: state.door.y + 140,
+          vx: 0, vy: -3,
+          life: 1, decay: 0.02, size: 4, color: C.spikeCore,
+        });
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.shortcutTaken = false;
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.strokeStyle = this.shortcutTaken ? C.spikeCore : 'rgba(0, 240, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.strokeRect(this.x, this.y, this.width, this.height);
+    ctx.restore();
+  }
+}
+
+/** 8. Route Seal: crossing threshold locks barrier behind, requiring forward momentum */
+export class RouteSealTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.triggerX = config.triggerX ?? config.x;
+    this.barrierX = config.barrierX ?? config.x - 20;
+    this.sealed = false;
+    this.wall = null;
+  }
+  init(state) {
+    this.wall = {
+      x: this.barrierX,
+      y: 0,
+      w: 18,
+      h: CANVAS_H,
+      visible: false,
+      solid: false,
+      type: 'seal_wall',
+    };
+    state.platforms.push(this.wall);
+  }
+  update(player) {
+    if (!this.sealed && player.x > this.triggerX) {
+      this.sealed = true;
+      if (this.wall) {
+        this.wall.visible = true;
+        this.wall.solid = true;
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.sealed = false;
+    if (this.wall) {
+      this.wall.visible = false;
+      this.wall.solid = false;
+    }
+  }
+  render(ctx) {
+    if (this.sealed) {
+      ctx.fillStyle = '#2d1822';
+      ctx.fillRect(this.barrierX, 0, 18, CANVAS_H);
+      ctx.strokeStyle = C.spikeCore;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(this.barrierX, 0, 18, CANVAS_H);
+    }
+  }
+}
+
+/* ── Category 5: Object Identity ────────────────────────── */
+
+/** 9. Decoy Springboard: downward chevron inverts velocity downward */
+export class DecoySpringboardTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.padPlatform = null;
+  }
+  init(state) {
+    this.padPlatform = {
+      x: this.x,
+      y: this.y,
+      w: this.width,
+      h: this.height,
+      visible: true,
+      solid: true,
+      type: 'springboard',
+    };
+    state.platforms.push(this.padPlatform);
+  }
+  update(player, state) {
+    const standing = player.grounded &&
+      player.x + player.w > this.x && player.x < this.x + this.width &&
+      Math.abs((player.y + player.h) - this.y) < 6;
+    if (standing) {
+      player.vy = 9.5;
+      player.grounded = false;
+      if (this.padPlatform) this.padPlatform.solid = false;
+      if (state.killPlayer) {
+        state.killPlayer({ x: this.x, y: this.y, w: this.width, h: this.height, type: 'inverted_spring', label: 'DOWNWARD SPRINGBOARD' });
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    if (this.padPlatform) this.padPlatform.solid = true;
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = '#161c2b';
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    const cx = this.x + this.width / 2;
+    const cy = this.y + this.height / 2;
+    ctx.strokeStyle = C.spikeCore;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 10, cy - 4);
+    ctx.lineTo(cx, cy + 4);
+    ctx.lineTo(cx + 10, cy - 4);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/** 10. Mimic Exit: looks like exit door, but snaps jaws when touched */
+export class MimicExitTrap extends Trap {
+  constructor(config) {
+    super(config);
+  }
+  update(player, state) {
+    const box = { x: this.x, y: this.y, w: this.width, h: this.height };
+    if (aabb(player, box)) {
+      this.triggered = true;
+      if (state.killPlayer) {
+        state.killPlayer({ x: this.x, y: this.y, w: this.width, h: this.height, type: 'mimic_exit', label: 'MIMIC PORTAL' });
+      }
+    }
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = '#221518';
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    ctx.strokeStyle = this.triggered ? C.spikeCore : 'rgba(255, 180, 50, 0.7)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(this.x, this.y, this.width, this.height);
+    if (this.triggered) {
+      ctx.fillStyle = C.spikeCore;
+      ctx.beginPath();
+      ctx.moveTo(this.x, this.y);
+      ctx.lineTo(this.x + this.width / 2, this.y + 16);
+      ctx.lineTo(this.x + this.width, this.y);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+/* ── Category 6: Memory ─────────────────────────────────── */
+
+/** 11. Symbol Inversion: diamond vs circle platform polarity flips on retry */
+export class SymbolInversionTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.symbol = config.symbol ?? 'diamond';
+    this.platform = null;
+  }
+  init(state) {
+    const isOdd = (state.levelAttempts % 2) === 1;
+    const isSafe = this.symbol === 'diamond' ? !isOdd : isOdd;
+    this.platform = {
+      x: this.x,
+      y: this.y,
+      w: this.width,
+      h: this.height,
+      visible: true,
+      solid: isSafe,
+      type: 'symbol_plat',
+    };
+    state.platforms.push(this.platform);
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = C.platform;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    ctx.fillStyle = C.platformTop;
+    ctx.fillRect(this.x, this.y, this.width, 3);
+    const cx = this.x + this.width / 2;
+    const cy = this.y + this.height / 2;
+    ctx.strokeStyle = this.symbol === 'diamond' ? '#00f0ff' : '#ffb700';
+    ctx.lineWidth = 2;
+    if (this.symbol === 'diamond') {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 6);
+      ctx.lineTo(cx + 6, cy);
+      ctx.lineTo(cx, cy + 6);
+      ctx.lineTo(cx - 6, cy);
+      ctx.closePath();
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
+/** 12. Echo Trail: shadow of previous run retraces path; collision is lethal */
+export class EchoTrailTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.stepIndex = 0;
+    this.lastState = null;
+  }
+  update(player, state) {
+    this.lastState = state;
+    if (!state.lastRunEcho || state.lastRunEcho.length === 0) return;
+    this.stepIndex++;
+    const ghost = state.lastRunEcho[this.stepIndex % state.lastRunEcho.length];
+    if (ghost) {
+      const ghostBox = { x: ghost.x, y: ghost.y, w: player.w, h: player.h };
+      if (aabb(player, ghostBox) && state.killPlayer) {
+        state.killPlayer({ x: ghost.x, y: ghost.y, w: player.w, h: player.h, type: 'temporal_echo', label: 'COLLISION WITH PAST SELF' });
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.stepIndex = 0;
+  }
+  render(ctx) {
+    if (!this.lastState || !this.lastState.lastRunEcho || this.lastState.lastRunEcho.length === 0) return;
+    const ghost = this.lastState.lastRunEcho[this.stepIndex % this.lastState.lastRunEcho.length];
+    if (ghost) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.25)';
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([2, 2]);
+      ctx.strokeRect(ghost.x, ghost.y, 22, 26);
+      ctx.fillRect(ghost.x, ghost.y, 22, 26);
+      ctx.restore();
+    }
+  }
+}
+
+/* ── Category 7: Reversal ───────────────────────────────── */
+
+/** 13. Stop and Go: running continuously overheats floor; micro-pauses discharge */
+export class StopAndGoTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.heat = 0;
+    this.maxHeat = config.maxHeat ?? 700;
+  }
+  update(player, state, dt) {
+    const standing = player.grounded &&
+      player.x + player.w > this.x && player.x < this.x + this.width &&
+      Math.abs((player.y + player.h) - this.y) < 6;
+
+    if (standing) {
+      if (Math.abs(player.vx) > 0.4) {
+        this.heat += dt;
+        if (this.heat >= this.maxHeat && state.killPlayer) {
+          state.killPlayer({ x: this.x, y: this.y, w: this.width, h: this.height, type: 'overheat', label: 'CONTINUOUS STRIDE OVERHEAT' });
+        }
+      } else {
+        this.heat = Math.max(0, this.heat - dt * 2.5);
+      }
+    } else {
+      this.heat = Math.max(0, this.heat - dt * 1.5);
+    }
+  }
+  reset() {
+    super.reset();
+    this.heat = 0;
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = C.platform;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    const ratio = Math.min(1, this.heat / this.maxHeat);
+    ctx.fillStyle = ratio > 0.7 ? C.spikeCore : 'rgba(255, 160, 0, 0.7)';
+    ctx.fillRect(this.x, this.y + this.height - 4, this.width * ratio, 4);
+    ctx.restore();
+  }
+}
+
+/** 14. Polarity Shift Field: inverts steering keys inside field */
+export class PolarityShiftFieldTrap extends Trap {
+  constructor(config) {
+    super(config);
+  }
+  update(player) {
+    const inside = aabb(player, { x: this.x, y: this.y, w: this.width, h: this.height });
+    if (inside) {
+      player.controlsInverted = true;
+    }
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 180, 255, 0.12)';
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    ctx.strokeStyle = 'rgba(0, 200, 255, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeRect(this.x, this.y, this.width, this.height);
+    ctx.restore();
+  }
+}
+
+/* ── Category 8: Confidence ─────────────────────────────── */
+
+/** 15. Third Pillar: identical to pillars 1 & 2, but drops immediately on contact */
+export class ThirdPillarTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.platform = null;
+    this.delay = config.delay ?? 120;
+    this.fallY = config.y;
+  }
+  init(state) {
+    this.platform = {
+      x: this.x,
+      y: this.y,
+      w: this.width,
+      h: this.height,
+      visible: true,
+      solid: true,
+      type: 'third_pillar',
+    };
+    state.platforms.push(this.platform);
+  }
+  update(player, state, dt) {
+    const standing = player.grounded &&
+      player.x + player.w > this.x && player.x < this.x + this.width &&
+      Math.abs((player.y + player.h) - this.y) < 6;
+
+    if (standing && !this.triggered) {
+      this.triggered = true;
+    }
+    if (this.triggered) {
+      this.timer += dt;
+      if (this.timer >= this.delay) {
+        this.fallY += dt * 0.7;
+        if (this.platform) {
+          this.platform.y = this.fallY;
+          this.platform.solid = false;
+        }
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.fallY = this.y;
+    if (this.platform) {
+      this.platform.y = this.y;
+      this.platform.solid = true;
+    }
+  }
+  render(ctx) {
+    ctx.fillStyle = C.platform;
+    ctx.fillRect(this.x, this.fallY, this.width, this.height);
+    ctx.fillStyle = C.platformTop;
+    ctx.fillRect(this.x, this.fallY, this.width, 3);
+  }
+}
+
+/** 16. Safe Zone: wide green sanctuary platform charges discharge if lingering > 480ms */
+export class SafeZoneTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.stayTime = 0;
+    this.maxStay = config.maxStay ?? 480;
+  }
+  update(player, state, dt) {
+    const inside = player.x + player.w > this.x && player.x < this.x + this.width &&
+      player.y + player.h >= this.y && player.y <= this.y + this.height;
+
+    if (inside) {
+      this.stayTime += dt;
+      if (this.stayTime >= this.maxStay && state.killPlayer) {
+        state.killPlayer({ x: this.x, y: this.y, w: this.width, h: this.height, type: 'safe_zone_collapse', label: 'HAVEN DISCHARGE' });
+      }
+    } else {
+      this.stayTime = 0;
+    }
+  }
+  reset() {
+    super.reset();
+    this.stayTime = 0;
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 255, 170, 0.08)';
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    const ratio = Math.min(1, this.stayTime / this.maxStay);
+    if (ratio > 0) {
+      ctx.strokeStyle = C.spikeCore;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(this.x, this.y, this.width, this.height);
+    }
+    ctx.restore();
+  }
+}
+
+/* ── Category 9: Pattern ────────────────────────────────── */
+
+/** 17. Pattern Disruption: oscillating steps contain deterministic phase exception */
+export class PatternDisruptionTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.platform = null;
+    this.baseY = config.y;
+    this.offsetY = 0;
+  }
+  init(state) {
+    this.platform = {
+      x: this.x,
+      y: this.y,
+      w: this.width,
+      h: this.height,
+      visible: true,
+      solid: true,
+      type: 'pattern_disrupt',
+    };
+    state.platforms.push(this.platform);
+  }
+  update(player, state, dt) {
+    this.timer += dt;
+    const t = this.timer * 0.003;
+    const irregular = Math.sin(t) + 0.5 * Math.sin(2.5 * t);
+    this.offsetY = irregular * 32;
+    if (this.platform) {
+      this.platform.y = this.baseY + this.offsetY;
+    }
+  }
+  reset() {
+    super.reset();
+    this.offsetY = 0;
+    if (this.platform) {
+      this.platform.y = this.baseY;
+    }
+  }
+  render(ctx) {
+    ctx.fillStyle = C.platform;
+    ctx.fillRect(this.x, this.baseY + this.offsetY, this.width, this.height);
+    ctx.fillStyle = C.platformTop;
+    ctx.fillRect(this.x, this.baseY + this.offsetY, this.width, 3);
+  }
+}
+
+/** 18. Vanish On Jump Refined: platform exists while walking; pressing Jump dematerializes it */
+export class VanishOnJumpRefinedTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.platform = null;
+  }
+  init(state) {
+    this.platform = {
+      x: this.x,
+      y: this.y,
+      w: this.width,
+      h: this.height,
+      visible: true,
+      solid: true,
+      type: 'vanish_jump',
+    };
+    state.platforms.push(this.platform);
+  }
+  update(player, state) {
+    if (player.jumped && !this.triggered) {
+      this.triggered = true;
+      if (this.platform) {
+        this.platform.visible = false;
+        this.platform.solid = false;
+        spawnTileParticles(this.platform, state.particles, C.vanishPart);
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    if (this.platform) {
+      this.platform.visible = true;
+      this.platform.solid = true;
+    }
+  }
+  render(ctx) {
+    if (this.triggered || !this.platform || !this.platform.visible) return;
+    ctx.fillStyle = C.platform;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    ctx.fillStyle = C.platformTop;
+    ctx.fillRect(this.x, this.y, this.width, 3);
+  }
+}
+
+/* ── Category 10: Attention ─────────────────────────────── */
+
+/** 19. Spotlight Decoy: swinging overhead pendulum diverts eyes from silent ground trigger */
+export class SpotlightDecoyTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.pendulumAngle = 0;
+    this.triggerX = config.triggerX ?? config.x + 80;
+    this.spikesPopped = false;
+  }
+  update(player, state, dt) {
+    this.timer += dt;
+    this.pendulumAngle = Math.sin(this.timer * 0.0024) * 0.9;
+    if (!this.spikesPopped && Math.abs(player.x - this.triggerX) < 18 && player.grounded) {
+      this.spikesPopped = true;
+      if (state.killPlayer) {
+        state.killPlayer({ x: this.triggerX - 10, y: GROUND_Y - 20, w: 24, h: 20, type: 'ground_spike', label: 'GROUND TRIGGER (DECOY PENDULUM)' });
+      }
+    }
+  }
+  reset() {
+    super.reset();
+    this.spikesPopped = false;
+  }
+  render(ctx) {
+    ctx.save();
+    const originX = this.x + 80;
+    const originY = 40;
+    const len = 170;
+    const bx = originX + Math.sin(this.pendulumAngle) * len;
+    const by = originY + Math.cos(this.pendulumAngle) * len;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(originX, originY);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+
+    ctx.fillStyle = C.spikeCore;
+    ctx.beginPath();
+    ctx.arc(bx, by, 18, 0, Math.PI * 2);
+    ctx.fill();
+
+    const grad = ctx.createRadialGradient(bx, by, 10, bx, by + 180, 120);
+    grad.addColorStop(0, 'rgba(0, 240, 255, 0.18)');
+    grad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx - 90, by + 220);
+    ctx.lineTo(bx + 90, by + 220);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+/** 20. Shifting Exit: sprinting into door causes it to slide 140px away */
+export class ShiftingExitTrap extends Trap {
+  constructor(config) {
+    super(config);
+    this.initialX = config.x ?? 880;
+    this.shiftDist = config.shiftDist ?? 150;
+    this.shifted = false;
+  }
+  update(player, state) {
+    if (!state.door) return;
+    const dist = state.door.x - (player.x + player.w);
+    if (!this.shifted && dist < 130 && dist > 10 && player.vx > 2.6) {
+      this.shifted = true;
+      state.door.x -= this.shiftDist;
+    }
+  }
+  reset() {
+    super.reset();
+    this.shifted = false;
+  }
+  render(ctx) {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(this.initialX - this.shiftDist - 10, GROUND_Y);
+    ctx.lineTo(this.initialX + 46, GROUND_Y);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
    TRAP REGISTRY
    ═══════════════════════════════════════════════════════════ */
 export const TrapRegistry = {
@@ -1220,22 +2121,44 @@ export const TrapRegistry = {
   }
 };
 
-// Register all 10 original trap types
-TrapRegistry.register('delayedPlatform', DelayedPlatformTrap);
-TrapRegistry.register('falseExit',       FalseExitTrap);
-TrapRegistry.register('memoryTrap',      MemoryTrap);
-TrapRegistry.register('momentumTrap',    MomentumTrap);
-TrapRegistry.register('fakeSafeZone',    FakeSafeZoneTrap);
-TrapRegistry.register('reactiveWall',    ReactiveWallTrap);
-TrapRegistry.register('timingSwitch',    TimingSwitchTrap);
-TrapRegistry.register('decoyObject',     DecoyObjectTrap);
-TrapRegistry.register('returnTrap',      ReturnTrap);
-TrapRegistry.register('confidenceTrap',  ConfidenceTrap);
+// Register all original trap types
+TrapRegistry.register('delayedPlatform',     DelayedPlatformTrap);
+TrapRegistry.register('falseExit',           FalseExitTrap);
+TrapRegistry.register('memoryTrap',          MemoryTrap);
+TrapRegistry.register('momentumTrap',        MomentumTrap);
+TrapRegistry.register('fakeSafeZone',        FakeSafeZoneTrap);
+TrapRegistry.register('reactiveWall',        ReactiveWallTrap);
+TrapRegistry.register('timingSwitch',        TimingSwitchTrap);
+TrapRegistry.register('decoyObject',         DecoyObjectTrap);
+TrapRegistry.register('returnTrap',          ReturnTrap);
+TrapRegistry.register('confidenceTrap',      ConfidenceTrap);
+
+// Register 20 unique psychological trap types across the 10 categories
+TrapRegistry.register('phantomPlatform',     PhantomPlatformTrap);
+TrapRegistry.register('camouflageHazard',    CamouflageHazardTrap);
+TrapRegistry.register('commitmentTrigger',   CommitmentTriggerTrap);
+TrapRegistry.register('deceleratingGate',    DeceleratingGateTrap);
+TrapRegistry.register('approachAngleTrap',   ApproachAngleTrap);
+TrapRegistry.register('tiltFulcrumTrap',     TiltFulcrumTrap);
+TrapRegistry.register('collapsingShortcut',  CollapsingShortcutTrap);
+TrapRegistry.register('routeSealTrap',       RouteSealTrap);
+TrapRegistry.register('decoySpringboard',    DecoySpringboardTrap);
+TrapRegistry.register('mimicExit',           MimicExitTrap);
+TrapRegistry.register('symbolInversion',     SymbolInversionTrap);
+TrapRegistry.register('echoTrail',           EchoTrailTrap);
+TrapRegistry.register('stopAndGo',           StopAndGoTrap);
+TrapRegistry.register('polarityShiftField',  PolarityShiftFieldTrap);
+TrapRegistry.register('thirdPillar',         ThirdPillarTrap);
+TrapRegistry.register('safeZone',            SafeZoneTrap);
+TrapRegistry.register('patternDisruption',   PatternDisruptionTrap);
+TrapRegistry.register('vanishOnJumpRefined', VanishOnJumpRefinedTrap);
+TrapRegistry.register('spotlightDecoy',      SpotlightDecoyTrap);
+TrapRegistry.register('shiftingExit',        ShiftingExitTrap);
 
 // Register legacy aliases for backwards compatibility
-TrapRegistry.register('vanish_on_enter', VanishOnEnterTrap);
-TrapRegistry.register('drop_on_land',    DropOnLandTrap);
-TrapRegistry.register('vanish_on_jump',  VanishOnJumpTrap);
+TrapRegistry.register('vanish_on_enter',     VanishOnEnterTrap);
+TrapRegistry.register('drop_on_land',        DropOnLandTrap);
+TrapRegistry.register('vanish_on_jump',      VanishOnJumpTrap);
 
 /* ─── Shared particle helper ────────────────────────────── */
 export function spawnTileParticles(tile, particles, color = C.vanishPart) {

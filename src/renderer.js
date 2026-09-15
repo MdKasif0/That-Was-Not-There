@@ -37,6 +37,9 @@ export function render(ctx, s) {
     drawDeathRing(ctx, s);
     drawDeathShards(ctx, s.deathShards);
     drawParticles(ctx, s.particles);
+
+    // Subtle post-death causal echo (realization feedback)
+    drawCausalEcho(ctx, s.causalEcho);
   }
 
   ctx.restore(); // remove camera + shake
@@ -707,3 +710,31 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+
+/* ── Post-death Causal Realization Feedback ─────────────── */
+function drawCausalEcho(ctx, echo) {
+  if (!echo || echo.alpha <= 0.01) return;
+  ctx.save();
+  // Faint dashed wireframe around the hazard/trigger area
+  ctx.strokeStyle = `rgba(255, 60, 90, ${echo.alpha * 0.75})`;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.strokeRect(echo.x - 2, echo.y - 2, echo.w + 4, echo.h + 4);
+
+  // Faint directional line from where the player died to the trigger
+  if (echo.fromX != null && echo.fromY != null) {
+    ctx.beginPath();
+    ctx.moveTo(echo.fromX, echo.fromY);
+    ctx.lineTo(echo.x + echo.w / 2, echo.y + echo.h / 2);
+    ctx.strokeStyle = `rgba(255, 60, 90, ${echo.alpha * 0.4})`;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 5]);
+    ctx.stroke();
+
+    // Small impact point circle at death origin
+    ctx.beginPath();
+    ctx.arc(echo.fromX, echo.fromY, 3, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
