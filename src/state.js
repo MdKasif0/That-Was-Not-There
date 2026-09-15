@@ -58,6 +58,9 @@ export function createGameState() {
     shake: { x: 0, y: 0, intensity: 0, dur: 0, maxDur: 0 },
     deathRing:   null,       // { x, y, radius, maxRadius, alpha }
     deathShards: [],         // polygon shards upon death shatter
+    causalEcho:  null,       // subtle post-death visual feedback without tutorial popups
+    lastRunEcho: [],         // recorded positions from previous attempt for echo traps
+    currentRunEcho: [],      // positions being recorded on active attempt
 
     // Timers
     deathTimer:      0,
