@@ -20,6 +20,7 @@ export function createPlayer() {
     eyeOffsetX: 0,   // gaze offset
     eyeOffsetY: 0,
     groundDist: 0,   // vertical distance to solid platform beneath
+    controlsInverted: false,
   };
 }
 
