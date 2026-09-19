@@ -50,13 +50,16 @@ export function updatePlayer(player, input, platforms) {
 
   /* ── 4. Jump impulse ───────────────────────────────── */
   player.jumped = false;
+  player.justJumped = false;
   if (player.jumpBuffer > 0 && player.coyoteTimer > 0) {
     player.vy          = JUMP_VEL;
     player.grounded    = false;
     player.coyoteTimer = 0;
     player.jumpBuffer  = 0;
-    player.stretch     = 1.15;
+    player.stretch     = 1.25;
+    player.squish      = 0;
     player.jumped      = true;
+    player.justJumped  = true;
   }
 
   /* ── 5. Variable-height jump (early release cut) ───── */
@@ -83,20 +86,22 @@ export function updatePlayer(player, input, platforms) {
     player.walkCycle = (player.walkCycle || 0) * 0.85;
   }
 
-  // Smooth body lean tilt
-  const targetTilt = (player.vx / MAX_SPEED) * 0.14;
+  // Smooth body lean and subtle airborne pitch
+  const targetTilt = player.grounded
+    ? (player.vx / MAX_SPEED) * 0.15
+    : (player.vx / MAX_SPEED) * 0.18 + Math.min(0.12, Math.max(-0.12, player.vy * 0.012));
   player.tilt = (player.tilt || 0) + (targetTilt - (player.tilt || 0)) * 0.22;
 
   // Airborne stretch
   if (!player.grounded) {
-    if (player.vy > 4) {
-      player.stretch = Math.min(0.6, (player.vy - 4) * 0.08);
+    if (player.vy > 3.5) {
+      player.stretch = Math.min(0.65, (player.vy - 3.5) * 0.09);
     }
   }
 
   // Squish / stretch decay
-  if (player.squish  > 0) { player.squish  *= 0.80; if (player.squish  < 0.01) player.squish  = 0; }
-  if (player.stretch > 0) { player.stretch *= 0.80; if (player.stretch < 0.01) player.stretch = 0; }
+  if (player.squish  > 0) { player.squish  *= 0.76; if (player.squish  < 0.01) player.squish  = 0; }
+  if (player.stretch > 0) { player.stretch *= 0.76; if (player.stretch < 0.01) player.stretch = 0; }
 
   // Directional gaze and blinking
   updatePlayerEyes(player);

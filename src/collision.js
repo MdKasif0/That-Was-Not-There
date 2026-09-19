@@ -47,8 +47,10 @@ export function resolveVerticalCollisions(player, platforms) {
 
     if (player.vy >= 0) {
       // Landing on top of platform
-      if (!wasGrounded && player.vy > 2.5) {
-        player.squish = Math.min(0.50, player.vy * 0.05);
+      if (!wasGrounded && player.vy > 1.8) {
+        player.squish = Math.min(0.48, player.vy * 0.05);
+        player.justLanded = true;
+        player.landVelocity = player.vy;
       }
       player.y = p.y - player.h;
       player.vy = 0;
