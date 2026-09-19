@@ -1,5 +1,6 @@
 import { CANVAS_W, CANVAS_H, C, DEATH_FREEZE, TRANSITION_MS } from './constants.js';
 import { getLevelCount } from './levels.js';
+import { getSettings } from './settings.js';
 
 /* ═══════════════════════════════════════════════════════════
    MAIN ENTRY — called once per frame from game.js
@@ -8,7 +9,9 @@ export function render(ctx, s) {
   ctx.save();
   const panX = s.camera ? s.camera.panX || 0 : 0;
   const panY = s.camera ? s.camera.panY || 0 : 0;
-  ctx.translate(panX + s.shake.x, panY + s.shake.y); // camera + screen-shake offset
+  const shakeX = getSettings().reducedMotion ? 0 : s.shake.x;
+  const shakeY = getSettings().reducedMotion ? 0 : s.shake.y;
+  ctx.translate(panX + shakeX, panY + shakeY); // camera + screen-shake offset
 
   drawBackground(ctx, s);
   drawBgParticles(ctx, s.bgParticles, s.time);
@@ -112,6 +115,7 @@ function drawBackground(ctx, s) {
 }
 
 function drawBgParticles(ctx, list, time) {
+  if (getSettings().reducedMotion) return;
   for (const p of list) {
     const sway = Math.sin(time * p.swaySpeed + p.swayOffset) * 6;
     ctx.globalAlpha = p.opacity;
@@ -424,6 +428,11 @@ function drawParticles(ctx, list) {
    TRANSITION OVERLAY  —  fast snappy 200ms dual shutter
    ═══════════════════════════════════════════════════════════ */
 function drawTransition(ctx, s) {
+  if (getSettings().reducedMotion) {
+    ctx.fillStyle = 'rgba(7, 8, 13, 0.9)';
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    return;
+  }
   const half = TRANSITION_MS / 2;
   let progress;
   if (s.transDir === 'out') {

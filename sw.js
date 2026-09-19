@@ -11,7 +11,7 @@
  * - Zero third-party runtime dependencies cached
  */
 
-const CACHE_VERSION = 'twnt-v4.1.0';
+const CACHE_VERSION = 'twnt-v4.2.0';
 
 const CORE_ASSETS = [
   './',
@@ -28,6 +28,8 @@ const CORE_ASSETS = [
   './src/traps.js',
   './src/state.js',
   './src/constants.js',
+  './src/settings.js',
+  './src/audio.js',
   './assets/icon.svg',
   './assets/icon-192.png',
   './assets/icon-512.png',
