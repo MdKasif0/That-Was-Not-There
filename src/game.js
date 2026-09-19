@@ -73,11 +73,17 @@ function loop(now) {
 function tick(dt) {
   if (consumePause()) {
     state.paused = !state.paused;
+    if (state.paused) {
+      openMenuModal();
+    } else {
+      closeMenuModal();
+    }
   }
 
   if (state.paused) {
     if (consumeRestart()) {
       state.paused = false;
+      closeMenuModal();
       resetLevel();
     }
     return;
@@ -243,6 +249,7 @@ function beginLevel(index) {
   state.deathRing   = null;
   state.deathShards = [];
   state.paused      = false;
+  closeMenuModal();
   state.shake       = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
   state.phase       = 'playing';
   state.levelNameTimer = 2200;
@@ -278,6 +285,7 @@ function resetLevel() {
   state.deathRing   = null;
   state.deathShards = [];
   state.paused      = false;
+  closeMenuModal();
   state.shake       = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
   state.phase       = 'playing';
 }
