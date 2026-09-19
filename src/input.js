@@ -1,19 +1,19 @@
 /**
  * ═══════════════════════════════════════════════════════════
- * Centralized Input Manager
+ * Centralized Input & Menu Manager — That Was Not There
  * ═══════════════════════════════════════════════════════════
  * 
  * Provides deterministic, latency-free input state for:
  * - Keyboard: A, D, ArrowLeft, ArrowRight, W, ArrowUp, Space, R, Escape, P
- * - Touch / Stylus: left, right, jump, restart (Pointer Events)
+ * - Touch / Stylus: left, right, jump (Pointer Events with multi-touch tracking)
+ * - In-game Menu Modal: Pause, Resume, Restart Room, PWA Install
  * 
  * Guarantees:
  * - Deterministic single-source of truth (inputState / keys)
- * - Zero DOM operations inside tick/render loops
  * - Multi-touch tracking via pointer capture and pointerId sets
  * - Safe release on pointercancel, lostpointercapture, and pointerleave
- * - Prevention of synthetic event duplication and unwanted browser scroll
- * - Instant restart consumption via R or restart button
+ * - Prevention of synthetic event duplication and unwanted browser gestures
+ * - Seamless HTML/CSS in-game menu integration with game engine pause state
  */
 
 export const inputState = {
@@ -35,19 +35,26 @@ let _jumpPrev = false;
 let _restartPrev = false;
 let _pausePrev = false;
 
-// Active pointers per action to support multi-touch / stylus simultaneously
+// Active pointers per action to support multi-touch simultaneously
 const activePointers = {
   left: new Set(),
   right: new Set(),
   jump: new Set(),
-  restart: new Set(),
 };
 
 // Active physical keys held down
 const activeKeys = new Set();
 
+let menuModalEl = null;
+let menuTitleEl = null;
+let menuLevelNameEl = null;
+
 /* ── Initialization ───────────────────────────────────── */
 export function initInput(canvas, onPointerAction) {
+  menuModalEl = document.getElementById('menu-modal');
+  menuTitleEl = document.getElementById('menu-title');
+  menuLevelNameEl = document.getElementById('menu-level-name');
+
   // ── Keyboard Listeners ─────────────────────────────
   window.addEventListener('keydown', (e) => {
     // Prevent scrolling and default browser shortcuts for gameplay keys
@@ -61,10 +68,16 @@ export function initInput(canvas, onPointerAction) {
     if (e.code === 'KeyR') {
       inputState.restart = true;
       inputState.restartPressed = true;
+      closeMenuModal();
     }
     if (e.code === 'Escape' || e.code === 'KeyP') {
-      inputState.pause = true;
+      inputState.pause = !inputState.pause;
       inputState.pausePressed = true;
+      if (inputState.pause) {
+        openMenuModal();
+      } else {
+        closeMenuModal();
+      }
     }
     inputState.anyKey = true;
   }, { passive: false });
@@ -104,6 +117,9 @@ export function initInput(canvas, onPointerAction) {
 
   // ── Touch / Stylus Pointer Controls ────────────────
   setupPointerControls();
+
+  // ── Menu Button & In-Game Menu Modal ───────────────
+  setupMenuControls();
 }
 
 function applyKey(code, down) {
@@ -125,7 +141,7 @@ function applyKey(code, down) {
       break;
 
     case 'KeyR':
-      inputState.restart = down || activePointers.restart.size > 0;
+      inputState.restart = down;
       break;
   }
 }
@@ -143,7 +159,6 @@ function setupPointerControls() {
     { id: 'btn-left', action: 'left' },
     { id: 'btn-right', action: 'right' },
     { id: 'btn-jump', action: 'jump' },
-    { id: 'btn-restart', action: 'restart' },
   ];
 
   for (const { id, action } of buttons) {
@@ -159,9 +174,7 @@ function setupPointerControls() {
       activePointers[action].add(e.pointerId);
       inputState[action] = true;
       inputState.anyKey = true;
-      if (action === 'restart') {
-        inputState.restartPressed = true;
-      }
+      el.classList.add('pressed');
     };
 
     const setActionUp = (e) => {
@@ -174,15 +187,13 @@ function setupPointerControls() {
       } catch (_) {}
       activePointers[action].delete(e.pointerId);
       if (activePointers[action].size === 0) {
-        // Retain state if keyboard key is still physically held
+        el.classList.remove('pressed');
         if (action === 'left') {
           inputState.left = isAnyActive('ArrowLeft', 'KeyA');
         } else if (action === 'right') {
           inputState.right = isAnyActive('ArrowRight', 'KeyD');
         } else if (action === 'jump') {
           inputState.jump = isAnyActive('ArrowUp', 'KeyW', 'Space');
-        } else if (action === 'restart') {
-          inputState.restart = isAnyActive('KeyR');
         } else {
           inputState[action] = false;
         }
@@ -194,8 +205,6 @@ function setupPointerControls() {
     el.addEventListener('pointercancel', setActionUp, { passive: false });
     el.addEventListener('lostpointercapture', setActionUp, { passive: false });
     el.addEventListener('pointerleave', (e) => {
-      // If pointer is captured, lostpointercapture will handle release;
-      // if not captured, release safely on pointerleave so input never sticks.
       if (!el.hasPointerCapture || !el.hasPointerCapture(e.pointerId)) {
         setActionUp(e);
       }
@@ -212,6 +221,87 @@ function setupPointerControls() {
 
   if (isTouchDevice) {
     document.getElementById('touch-controls')?.classList.add('visible');
+  }
+}
+
+/* ── Menu & Modal Controls ────────────────────────────── */
+function setupMenuControls() {
+  const btnMenu = document.getElementById('btn-menu');
+  const btnResume = document.getElementById('menu-btn-resume');
+  const btnRestart = document.getElementById('menu-btn-restart');
+  const btnInstall = document.getElementById('menu-btn-install');
+
+  if (btnMenu) {
+    btnMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenuModal();
+    });
+  }
+
+  if (btnResume) {
+    btnResume.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeMenuModal();
+    });
+  }
+
+  if (btnRestart) {
+    btnRestart.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeMenuModal();
+      inputState.restart = true;
+      inputState.restartPressed = true;
+    });
+  }
+
+  if (btnInstall) {
+    btnInstall.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window.__triggerPWAInstall) {
+        window.__triggerPWAInstall();
+      }
+    });
+  }
+
+  // Close menu when clicking on backdrop outside the card
+  if (menuModalEl) {
+    menuModalEl.addEventListener('click', (e) => {
+      if (e.target === menuModalEl) {
+        closeMenuModal();
+      }
+    });
+  }
+}
+
+export function openMenuModal() {
+  if (!menuModalEl) return;
+  inputState.pause = true;
+  menuModalEl.classList.add('open');
+  menuModalEl.setAttribute('aria-hidden', 'false');
+
+  // Update room indicator text
+  if (typeof window !== 'undefined' && window.__gameState && window.__gameState.levelDef) {
+    const s = window.__gameState;
+    const roomNum = String(s.currentLevelIndex + 1).padStart(2, '0');
+    if (menuLevelNameEl) {
+      menuLevelNameEl.textContent = `Room ${roomNum} — ${s.levelDef.title}`;
+    }
+  }
+}
+
+export function closeMenuModal() {
+  if (!menuModalEl) return;
+  inputState.pause = false;
+  menuModalEl.classList.remove('open');
+  menuModalEl.setAttribute('aria-hidden', 'true');
+}
+
+export function toggleMenuModal() {
+  if (!menuModalEl) return;
+  if (menuModalEl.classList.contains('open')) {
+    closeMenuModal();
+  } else {
+    openMenuModal();
   }
 }
 
