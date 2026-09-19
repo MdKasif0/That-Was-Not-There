@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="description" content="That Was Not There — a rage-bait platformer where the environment betrays you at every turn.">
+  <meta name="description" content="That Was Not There — a psychological rage-bait platformer where the environment betrays your assumptions.">
   <meta name="theme-color" content="#00e5ff">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Not There">
 
   <title>That Was Not There</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles/main.css?v=v4">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles/main.css?v=v5">
 </head>
 <body>
 
@@ -24,15 +23,57 @@
   <div id="game-container">
     <canvas id="game-canvas" aria-label="Game canvas"></canvas>
 
-    <!-- On-screen controls for touch devices (hidden by default) -->
+    <!-- Top Menu Button (Minimal, glassmorphic, accessible) -->
+    <button id="btn-menu" class="glass-pill-btn" aria-label="Open game menu" title="Menu (Esc / P)">
+      <span class="menu-icon-bars" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+      <span class="menu-btn-label">MENU</span>
+    </button>
+
+    <!-- On-screen controls for touch devices -->
     <div id="touch-controls" role="toolbar" aria-label="Touch controls">
       <div class="touch-group touch-left-group">
         <button class="touch-btn" id="btn-left" aria-label="Move left">◀</button>
         <button class="touch-btn" id="btn-right" aria-label="Move right">▶</button>
       </div>
       <div class="touch-group touch-right-group">
-        <button class="touch-btn touch-btn-small" id="btn-restart" aria-label="Restart room">↺</button>
-        <button class="touch-btn" id="btn-jump" aria-label="Jump">▲</button>
+        <button class="touch-btn touch-btn-jump" id="btn-jump" aria-label="Jump">▲</button>
+      </div>
+    </div>
+
+    <!-- Small In-Game Menu Modal (Accessible via #btn-menu, ESC, or P) -->
+    <div id="menu-modal" class="modal-backdrop" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-badge">PAUSED</span>
+          <h2 id="menu-title" class="modal-title">That Was Not There</h2>
+          <p id="menu-level-name" class="modal-subtitle">Room 01 / 20</p>
+        </div>
+
+        <div class="modal-actions">
+          <button id="menu-btn-resume" class="modal-btn modal-btn-primary">
+            <span class="btn-icon">▶</span> Resume Run
+          </button>
+          <button id="menu-btn-restart" class="modal-btn modal-btn-warning">
+            <span class="btn-icon">↺</span> Restart Room
+          </button>
+          <button id="menu-btn-install" class="modal-btn modal-btn-secondary" style="display: none;">
+            <span class="btn-icon">📥</span> Install App
+          </button>
+        </div>
+
+        <div class="modal-footer">
+          <div class="keyboard-hints">
+            <span><kbd>P</kbd> / <kbd>ESC</kbd> Pause</span>
+            <span><kbd>R</kbd> Restart</span>
+            <span><kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd> Move</span>
+            <span><kbd>SPACE</kbd> Jump</span>
+          </div>
+          <p class="modal-footnote">100% Offline Progressive Web App</p>
+        </div>
       </div>
     </div>
   </div>
@@ -53,10 +94,10 @@
         </div>
       </div>
       <h1 class="rotate-message">Rotate your device.</h1>
-      <p class="rotate-hint">Landscape 16:9 mode is required</p>
+      <p class="rotate-hint">Landscape 16:9 mode is required to play</p>
     </div>
   </div>
 
-  <script type="module" src="src/main.js?v=v4"></script>
+  <script type="module" src="src/main.js?v=v5"></script>
 </body>
 </html>

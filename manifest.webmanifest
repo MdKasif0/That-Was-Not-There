@@ -1,18 +1,39 @@
 {
   "name": "That Was Not There",
-  "short_name": "TWNT",
-  "description": "A rage-bait platformer where the environment betrays you at every turn.",
+  "short_name": "Not There",
+  "description": "A psychological rage-bait platformer where the environment betrays your assumptions.",
   "start_url": "./index.html",
+  "scope": "./",
+  "id": "that-was-not-there",
   "display": "fullscreen",
   "orientation": "landscape",
-  "background_color": "#08080f",
+  "background_color": "#07080d",
   "theme_color": "#00e5ff",
+  "categories": ["games", "arcade"],
   "icons": [
     {
       "src": "assets/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

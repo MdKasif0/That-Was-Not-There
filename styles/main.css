@@ -1,8 +1,8 @@
 /* ═══════════════════════════════════════════════════════════
-   That Was Not There — styles
+   That Was Not There — Production PWA Styles
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Reset ─────────────────────────────────────────────── */
+/* ── Reset & Mobile Gesture Prevention ──────────────────── */
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -13,12 +13,14 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   background: #07080d;
-  font-family: 'JetBrains Mono', 'SF Mono', 'Segoe UI Mono', 'Courier New', monospace;
+  font-family: 'JetBrains Mono', 'SF Mono', -apple-system, BlinkMacSystemFont, 'Segoe UI Mono', Menlo, Consolas, monospace;
   color: #f0f4fc;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -36,9 +38,67 @@ html, body {
 
 #game-canvas {
   display: block;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.06);
   border-radius: 4px;
   touch-action: none;
+}
+
+/* ── Top-Right Menu Button ─────────────────────────────── */
+#btn-menu {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top, 14px));
+  right: max(16px, env(safe-area-inset-right, 16px));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: rgba(14, 16, 26, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(240, 244, 252, 0.85);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  outline: none;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+#btn-menu:hover {
+  background: rgba(22, 26, 42, 0.88);
+  border-color: rgba(0, 229, 255, 0.45);
+  color: #00e5ff;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.25);
+}
+
+#btn-menu:active {
+  transform: scale(0.95);
+  background: rgba(0, 229, 255, 0.15);
+  border-color: #00e5ff;
+}
+
+.menu-icon-bars {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 14px;
+  height: 10px;
+}
+
+.menu-icon-bars span {
+  display: block;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 1px;
 }
 
 /* ── Touch controls ────────────────────────────────────── */
@@ -61,20 +121,20 @@ html, body {
 .touch-group {
   display: flex;
   align-items: flex-end;
-  gap: 14px;
+  gap: 16px;
   pointer-events: none;
 }
 
 .touch-btn {
   pointer-events: auto;
-  width: 66px;
-  height: 66px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.16);
-  background: rgba(18, 20, 32, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: rgba(255, 255, 255, 0.65);
+  background: rgba(14, 16, 26, 0.68);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.72);
   font-size: 24px;
   font-weight: 600;
   line-height: 1;
@@ -86,42 +146,209 @@ html, body {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  transition: background 0.06s, border-color 0.06s, transform 0.06s, color 0.06s;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  transition: background 0.08s, border-color 0.08s, transform 0.08s, color 0.08s, box-shadow 0.08s;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
 }
 
-.touch-btn:active {
+.touch-btn:active,
+.touch-btn.pressed {
   background: rgba(0, 229, 255, 0.22);
-  border-color: rgba(0, 229, 255, 0.65);
+  border-color: rgba(0, 229, 255, 0.75);
   color: #00e5ff;
   transform: scale(0.94);
-  box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
 }
 
-/* Large jump button */
-#btn-jump {
+/* Large jump button on bottom right */
+.touch-btn-jump {
   width: 78px;
   height: 78px;
   font-size: 28px;
   border-color: rgba(0, 229, 255, 0.35);
-  color: rgba(0, 229, 255, 0.85);
+  color: rgba(0, 229, 255, 0.88);
 }
 
-/* Quick restart touch button */
-#btn-restart {
-  width: 52px;
-  height: 52px;
-  font-size: 20px;
+/* ── In-Game Menu Modal ─────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(5, 6, 10, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.modal-backdrop.open {
+  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  width: min(92vw, 360px);
+  background: #0d0f1a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(0, 229, 255, 0.15);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  margin-bottom: 20px;
+}
+
+.modal-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: #00e5ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   margin-bottom: 8px;
-  border-color: rgba(255, 59, 92, 0.32);
-  color: rgba(255, 80, 110, 0.75);
 }
 
-#btn-restart:active {
-  background: rgba(255, 59, 92, 0.25);
-  border-color: rgba(255, 59, 92, 0.7);
+.modal-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #f0f4fc;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 12px;
+  color: #7b88a8;
+  font-weight: 500;
+}
+
+.modal-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.modal-btn {
+  width: 100%;
+  padding: 13px 18px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #141724;
+  color: #f0f4fc;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  outline: none;
+  touch-action: manipulation;
+  transition: all 0.15s ease;
+}
+
+.modal-btn .btn-icon {
+  font-size: 14px;
+}
+
+.modal-btn-primary {
+  background: rgba(0, 229, 255, 0.15);
+  border-color: rgba(0, 229, 255, 0.45);
+  color: #00e5ff;
+}
+
+.modal-btn-primary:hover,
+.modal-btn-primary:active {
+  background: rgba(0, 229, 255, 0.28);
+  border-color: #00e5ff;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.35);
+}
+
+.modal-btn-warning {
+  background: rgba(255, 59, 92, 0.12);
+  border-color: rgba(255, 59, 92, 0.38);
+  color: #ff5270;
+}
+
+.modal-btn-warning:hover,
+.modal-btn-warning:active {
+  background: rgba(255, 59, 92, 0.24);
+  border-color: #ff3b5c;
   color: #ff3b5c;
-  box-shadow: 0 0 16px rgba(255, 59, 92, 0.45);
+  box-shadow: 0 0 16px rgba(255, 59, 92, 0.35);
+}
+
+.modal-btn-secondary {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+.modal-btn-secondary:hover,
+.modal-btn-secondary:active {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: #a855f7;
+  color: #d8b4fe;
+}
+
+.modal-footer {
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+
+.keyboard-hints {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 12px;
+  font-size: 11px;
+  color: #6b7899;
+  margin-bottom: 8px;
+}
+
+.keyboard-hints kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  background: #1b1e2e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  color: #cfd8ec;
+  font-size: 10px;
+}
+
+.modal-footnote {
+  font-size: 10px;
+  color: #4b5570;
+  letter-spacing: 0.04em;
 }
 
 /* ── Portrait orientation warning overlay ──────────────── */
@@ -209,30 +436,15 @@ html, body {
 
 /* ── Keyframe Animations ───────────────────────────────── */
 @keyframes deviceRotateAnim {
-  0%, 15% {
-    transform: rotate(0deg);
-  }
-  45%, 70% {
-    transform: rotate(-90deg);
-  }
-  85%, 100% {
-    transform: rotate(0deg);
-  }
+  0%, 15% { transform: rotate(0deg); }
+  45%, 70% { transform: rotate(-90deg); }
+  85%, 100% { transform: rotate(0deg); }
 }
 
 @keyframes pulseRotate {
-  0%, 15% {
-    opacity: 0.3;
-    transform: scale(0.95);
-  }
-  45%, 70% {
-    opacity: 1;
-    transform: scale(1.08);
-  }
-  85%, 100% {
-    opacity: 0.3;
-    transform: scale(0.95);
-  }
+  0%, 15% { opacity: 0.3; transform: scale(0.95); }
+  45%, 70% { opacity: 1; transform: scale(1.08); }
+  85%, 100% { opacity: 0.3; transform: scale(0.95); }
 }
 
 /* ── Mobile Portrait Media Query ───────────────────────── */
