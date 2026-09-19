@@ -6,6 +6,8 @@ import { aabb, checkSpikeCollision, getCollidingSpike, checkDoorCollision } from
 import { loadLevel, getLevelCount }              from './levels.js';
 import { TrapRegistry }                          from './traps.js';
 import { render }                                from './renderer.js';
+import { initAudio, playJump, playLanding, playTrap, playDeath, playVictory } from './audio.js';
+import { getSettings }                           from './settings.js';
 
 /* ── module state ─────────────────────────────────────── */
 let ctx, dpr;
@@ -20,6 +22,8 @@ export function initGame(context, devicePixelRatio) {
   dpr   = devicePixelRatio;
   state = createGameState();
   state.killPlayer = (cause) => die(cause);
+  state.impactFreeze = 0;
+  initAudio();
   if (typeof window !== 'undefined') {
     window.__gameState = state;
     window.__beginLevel = beginLevel;
@@ -71,6 +75,11 @@ function loop(now) {
    TICK  —  one fixed-step update
    ═══════════════════════════════════════════════════════════ */
 function tick(dt) {
+  if (state.impactFreeze > 0) {
+    state.impactFreeze--;
+    return;
+  }
+
   if (consumePause()) {
     state.paused = !state.paused;
     if (state.paused) {
@@ -120,6 +129,23 @@ function tickPlaying(dt) {
   updatePlayer(p, keys, state.platforms);
   updatePlayerGroundDist(p, state.platforms);
 
+  // Jump game-feel & audio
+  if (p.justJumped) {
+    playJump();
+    spawnJumpDust(p, state);
+    p.justJumped = false;
+  }
+
+  // Landing game-feel & audio
+  if (p.justLanded) {
+    playLanding(p.landVelocity || 3);
+    spawnLandingDust(p, state, p.landVelocity);
+    if (p.landVelocity > 6.5 && !getSettings().reducedMotion) {
+      setShake(1.5, 60);
+    }
+    p.justLanded = false;
+  }
+
   // Record motion history for echo shadow traps
   if (state.currentRunEcho && state.currentRunEcho.length < 1200) {
     state.currentRunEcho.push({ x: p.x, y: p.y, facingRight: p.facingRight });
@@ -139,8 +165,13 @@ function tickPlaying(dt) {
     return;
   }
 
+  // Trap updates and subtle activation audio cues
   for (const trap of state.traps) {
+    const wasTriggered = trap.triggered;
     trap.update(p, state, dt);
+    if (!wasTriggered && trap.triggered) {
+      playTrap(trap.type || trap.config?.type || 'trap');
+    }
   }
 
   // Scripted events check
@@ -315,6 +346,8 @@ function die(causeInfo) {
   if (!state.player.alive) return;
   state.player.alive = false;
   state.deaths++;
+  playDeath();
+
   const cx = state.player.x + state.player.w / 2;
   const cy = state.player.y + state.player.h / 2;
 
@@ -338,8 +371,14 @@ function die(causeInfo) {
   // Geometric polygon shatter
   spawnDeathShards(cx, cy);
 
-  // Short screen shake (6px decaying over 120ms)
-  setShake(6, 120);
+  // Screen shake & impact freeze frame
+  if (!getSettings().reducedMotion) {
+    setShake(5.5, 110);
+    state.impactFreeze = 2;
+  } else {
+    state.shake = { x: 0, y: 0, intensity: 0, dur: 0, maxDur: 0 };
+    state.impactFreeze = 0;
+  }
 
   state.deathTimer = DEATH_FREEZE;
   state.phase      = 'dying';
@@ -383,25 +422,65 @@ function tickDeathVFX(dt) {
 }
 
 function winLevel() {
+  playVictory();
   spawnDoor();
-  state.transTimer = TRANSITION_MS / 2;
+  state.transTimer = getSettings().reducedMotion ? 60 : TRANSITION_MS / 2;
   state.transDir   = 'out';
   state.phase      = 'transitioning';
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PARTICLES
+   PARTICLES & DUST
    ═══════════════════════════════════════════════════════════ */
+function spawnJumpDust(p, s) {
+  if (getSettings().reducedMotion) return;
+  const feetY = p.y + p.h;
+  const cx = p.x + p.w / 2;
+  for (let i = 0; i < 4; i++) {
+    const dir = (i % 2 === 0 ? -1 : 1);
+    s.particles.push({
+      x: cx + dir * (Math.random() * 6),
+      y: feetY - 2,
+      vx: dir * (0.6 + Math.random() * 1.4),
+      vy: -(0.3 + Math.random() * 0.7),
+      life: 1,
+      decay: 0.055 + Math.random() * 0.035,
+      size: 1.6 + Math.random() * 1.8,
+      color: 'rgba(210, 230, 255, 0.45)',
+    });
+  }
+}
+
+function spawnLandingDust(p, s, speed = 4) {
+  if (getSettings().reducedMotion) return;
+  const feetY = p.y + p.h;
+  const count = Math.min(6, Math.max(3, Math.floor(speed * 0.7)));
+  for (let i = 0; i < count; i++) {
+    const dir = (i % 2 === 0 ? -1 : 1);
+    s.particles.push({
+      x: p.x + p.w / 2 + dir * (2 + Math.random() * 8),
+      y: feetY - 2,
+      vx: dir * (1.1 + Math.random() * 2.0),
+      vy: -(0.4 + Math.random() * 0.9),
+      life: 1,
+      decay: 0.05 + Math.random() * 0.03,
+      size: 1.8 + Math.random() * 2.2,
+      color: 'rgba(190, 220, 255, 0.42)',
+    });
+  }
+}
+
 function spawnDeath(x, y) {
-  for (let i = 0; i < 20; i++) {
-    const a = (Math.PI * 2 / 20) * i + (Math.random() - 0.5) * 0.4;
+  if (getSettings().reducedMotion) return;
+  for (let i = 0; i < 12; i++) {
+    const a = (Math.PI * 2 / 12) * i + (Math.random() - 0.5) * 0.4;
     const sp = 2 + Math.random() * 3.5;
     state.particles.push({
       x, y,
       vx: Math.cos(a) * sp,
       vy: Math.sin(a) * sp - 1.8,
       life: 1,
-      decay: 0.018 + Math.random() * 0.016,
+      decay: 0.024 + Math.random() * 0.016,
       size: 2 + Math.random() * 3,
       color: C.deathCols[Math.random() * C.deathCols.length | 0],
     });
@@ -410,7 +489,8 @@ function spawnDeath(x, y) {
 
 function spawnDoor() {
   const d = state.door;
-  for (let i = 0; i < 18; i++) {
+  const count = getSettings().reducedMotion ? 4 : 18;
+  for (let i = 0; i < count; i++) {
     const a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI;
     const sp = 1 + Math.random() * 3;
     state.particles.push({
@@ -419,7 +499,7 @@ function spawnDoor() {
       vx: Math.cos(a) * sp,
       vy: Math.sin(a) * sp,
       life: 1,
-      decay: 0.018 + Math.random() * 0.012,
+      decay: 0.022 + Math.random() * 0.012,
       size: 2 + Math.random() * 3,
       color: C.doorCols[Math.random() * 3 | 0],
     });
@@ -439,6 +519,7 @@ function tickParticles() {
 }
 
 function tickBgParticles() {
+  if (getSettings().reducedMotion) return;
   for (const p of state.bgParticles) {
     p.y -= p.speed;
     if (p.y < -10) { p.y = CANVAS_H + 10; p.x = Math.random() * CANVAS_W; }
@@ -449,10 +530,19 @@ function tickBgParticles() {
    SCREEN SHAKE
    ═══════════════════════════════════════════════════════════ */
 function setShake(intensity, dur) {
+  if (getSettings().reducedMotion) {
+    state.shake = { x:0, y:0, intensity:0, dur:0, maxDur:0 };
+    return;
+  }
   state.shake = { x:0, y:0, intensity, dur, maxDur: dur };
 }
 
 function tickScreenShake(dt) {
+  if (getSettings().reducedMotion) {
+    state.shake.x = 0;
+    state.shake.y = 0;
+    return;
+  }
   const s = state.shake;
   if (s.dur > 0) {
     s.dur -= dt;
