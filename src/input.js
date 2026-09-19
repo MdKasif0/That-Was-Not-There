@@ -282,9 +282,10 @@ export function openMenuModal() {
   // Update room indicator text
   if (typeof window !== 'undefined' && window.__gameState && window.__gameState.levelDef) {
     const s = window.__gameState;
-    const roomNum = String(s.currentLevelIndex + 1).padStart(2, '0');
+    const lvlIdx = (s.currentLevel !== undefined) ? s.currentLevel : (s.currentLevelIndex || 0);
+    const roomNum = String(lvlIdx + 1).padStart(2, '0');
     if (menuLevelNameEl) {
-      menuLevelNameEl.textContent = `Room ${roomNum} — ${s.levelDef.title}`;
+      menuLevelNameEl.textContent = `Room ${roomNum} / 20 — ${s.levelDef.title}`;
     }
   }
 }
