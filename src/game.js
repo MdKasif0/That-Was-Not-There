@@ -1,6 +1,6 @@
 import { CANVAS_W, CANVAS_H, DEATH_FREEZE, TRANSITION_MS, C } from './constants.js';
 import { createGameState }                      from './state.js';
-import { keys, updateInput, consumeAnyKey, consumeRestart, consumePause } from './input.js';
+import { keys, updateInput, consumeAnyKey, consumeRestart, consumePause, openMenuModal, closeMenuModal } from './input.js';
 import { updatePlayer, updatePlayerGroundDist, checkBounds }            from './physics.js';
 import { aabb, checkSpikeCollision, getCollidingSpike, checkDoorCollision } from './collision.js';
 import { loadLevel, getLevelCount }              from './levels.js';
@@ -32,15 +32,10 @@ export function onPointerAction(cx, cy) {
     beginLevel(0);
     return;
   }
-  // Check tiny pause button
-  const btn = state.pauseBtn;
-  if (btn && cx >= btn.x - 4 && cx <= btn.x + btn.w + 4 && cy >= btn.y - 4 && cy <= btn.y + btn.h + 4) {
-    state.paused = !state.paused;
-    return;
-  }
-  // If paused, clicking resumes
+  // If paused, clicking canvas resumes
   if (state.paused) {
     state.paused = false;
+    closeMenuModal();
     return;
   }
 }
