@@ -55,7 +55,7 @@ export function render(ctx, s) {
   if (s.phase === 'transitioning') drawTransition(ctx, s);
   drawUI(ctx, s);
 
-  if (s.paused) drawPauseOverlay(ctx, s);
+  if (s.paused) drawPauseBackdrop(ctx);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -483,28 +483,11 @@ function drawHUD(ctx, s) {
   ctx.font = '500 11px "JetBrains Mono", monospace';
   ctx.fillText(`◆ ${secretCount}/15`, 95, 16);
 
-  /* 4. Minimal death tally — top right (before pause button) */
+  /* 4. Minimal death tally — top right */
   ctx.textAlign = 'right';
   ctx.fillStyle = C.textMuted;
   ctx.font = '600 13px "JetBrains Mono", "SF Mono", monospace';
-  ctx.fillText(`☠ ${s.deaths}`, CANVAS_W - 56, 16);
-
-  /* 5. Tiny pause button [ || ] — top right corner */
-  const btn = s.pauseBtn;
-  if (btn) {
-    ctx.fillStyle = C.uiBg;
-    roundRect(ctx, btn.x, btn.y, btn.w, btn.h, 4);
-    ctx.fill();
-
-    ctx.strokeStyle = C.uiBorder;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Two sleek vertical pause bars
-    ctx.fillStyle = C.text;
-    ctx.fillRect(btn.x + 9, btn.y + 8, 3, 12);
-    ctx.fillRect(btn.x + 18, btn.y + 8, 3, 12);
-  }
+  ctx.fillText(`☠ ${s.deaths}`, CANVAS_W - 20, 16);
 
   /* 6. Minimal restart hint — bottom center */
   ctx.fillStyle = C.textDim;
@@ -550,39 +533,11 @@ function drawHUD(ctx, s) {
   }
 }
 
-/* — pause menu overlay ---------------------------------- */
-function drawPauseOverlay(ctx, s) {
+/* — ambient pause backdrop wash ------------------------- */
+function drawPauseBackdrop(ctx) {
   ctx.save();
-  ctx.fillStyle = 'rgba(7, 9, 14, 0.78)';
+  ctx.fillStyle = 'rgba(7, 9, 14, 0.72)';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-  const cx = CANVAS_W / 2;
-  const cy = CANVAS_H / 2;
-
-  // Minimal glass card
-  const cw = 300, ch = 180;
-  roundRect(ctx, cx - cw / 2, cy - ch / 2, cw, ch, 6);
-  ctx.fillStyle = C.uiBg;
-  ctx.fill();
-  ctx.strokeStyle = C.uiBorder;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  ctx.fillStyle = C.text;
-  ctx.font = '700 20px "JetBrains Mono", monospace';
-  ctx.fillText('PAUSED', cx, cy - 40);
-
-  ctx.fillStyle = C.player;
-  ctx.font = '600 13px "JetBrains Mono", monospace';
-  ctx.fillText('PRESS P OR CLICK TO RESUME', cx, cy + 2);
-
-  ctx.fillStyle = C.textDim;
-  ctx.font = '500 12px "JetBrains Mono", monospace';
-  ctx.fillText('PRESS R TO RESTART ROOM', cx, cy + 32);
-
   ctx.restore();
 }
 
