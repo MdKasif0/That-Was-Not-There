@@ -10,27 +10,97 @@ const dpr    = window.devicePixelRatio || 1;
 canvas.width  = CANVAS_W * dpr;
 canvas.height = CANVAS_H * dpr;
 
+/**
+ * Responsive 16:9 Viewport Scaling
+ * Supports desktop monitors, laptops, tablets, and mobile devices.
+ * Uses window.visualViewport to avoid keyboard/URL-bar layout jumping.
+ */
 function resize() {
-  const cw = window.innerWidth;
-  const ch = window.innerHeight;
+  const vv = window.visualViewport;
+  const cw = vv ? vv.width : window.innerWidth;
+  const ch = vv ? vv.height : window.innerHeight;
   const ratio = CANVAS_W / CANVAS_H;
   let w, h;
-  if (cw / ch > ratio) { h = ch; w = h * ratio; }
-  else                  { w = cw; h = w / ratio; }
-  canvas.style.width  = `${w}px`;
-  canvas.style.height = `${h}px`;
+  if (cw / ch > ratio) {
+    h = ch;
+    w = h * ratio;
+  } else {
+    w = cw;
+    h = w / ratio;
+  }
+  canvas.style.width  = `${Math.floor(w)}px`;
+  canvas.style.height = `${Math.floor(h)}px`;
 }
-resize();
-window.addEventListener('resize', resize);
 
-/* ── Boot ─────────────────────────────────────────────── */
+resize();
+window.addEventListener('resize', resize, { passive: true });
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', resize, { passive: true });
+}
+
+/* ── Boot Game & Input Systems ────────────────────────── */
 initGame(ctx, dpr);
 initInput(canvas, onPointerAction);
 startGameLoop();
 
-/* ── Service-worker cleanup / unregister ────────────────── */
+/* ── Progressive Web App (PWA) Service Worker Registration ── */
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((regs) => {
-    for (const r of regs) r.unregister();
-  }).catch(() => {});
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => {
+        // Safe update lifecycle
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[PWA] New version installed and ready for next load.');
+            }
+          });
+        });
+      })
+      .catch((err) => {
+        console.warn('[PWA] Service Worker registration failed:', err);
+      });
+  });
 }
+
+/* ── PWA Installation Support ─────────────────────────── */
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById('menu-btn-install');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  // Prevent browser default mini-infobar
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (installBtn) {
+    installBtn.style.display = 'flex';
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  if (installBtn) {
+    installBtn.style.display = 'none';
+  }
+  console.log('[PWA] Game installed to device home screen / launcher.');
+});
+
+window.__triggerPWAInstall = async function() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    console.log('[PWA] User response to install prompt:', outcome);
+    deferredInstallPrompt = null;
+    if (installBtn) {
+      installBtn.style.display = 'none';
+    }
+  } else {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      alert('To install on iOS: tap the Share button in Safari, then tap "Add to Home Screen".');
+    } else {
+      alert('This game is installed or already supported offline in your browser.');
+    }
+  }
+};
