@@ -16,6 +16,9 @@
  * - Seamless HTML/CSS in-game menu integration with game engine pause state
  */
 
+import { getSettings, toggleSetting, onSettingsChange } from './settings.js';
+import { playUI } from './audio.js';
+
 export const inputState = {
   left: false,
   right: false,
@@ -231,9 +234,57 @@ function setupMenuControls() {
   const btnRestart = document.getElementById('menu-btn-restart');
   const btnInstall = document.getElementById('menu-btn-install');
 
+  const toggleSound = document.getElementById('toggle-sound');
+  const toggleAmbient = document.getElementById('toggle-ambient');
+  const toggleMotion = document.getElementById('toggle-motion');
+
+  function syncToggleUI(settings) {
+    if (toggleSound) {
+      toggleSound.classList.toggle('active', settings.sound);
+      toggleSound.setAttribute('aria-checked', String(settings.sound));
+    }
+    if (toggleAmbient) {
+      toggleAmbient.classList.toggle('active', settings.ambient);
+      toggleAmbient.setAttribute('aria-checked', String(settings.ambient));
+    }
+    if (toggleMotion) {
+      toggleMotion.classList.toggle('active', settings.reducedMotion);
+      toggleMotion.setAttribute('aria-checked', String(settings.reducedMotion));
+    }
+  }
+
+  // Initial sync & subscribe
+  syncToggleUI(getSettings());
+  onSettingsChange(syncToggleUI);
+
+  if (toggleSound) {
+    toggleSound.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSetting('sound');
+      playUI();
+    });
+  }
+
+  if (toggleAmbient) {
+    toggleAmbient.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSetting('ambient');
+      playUI();
+    });
+  }
+
+  if (toggleMotion) {
+    toggleMotion.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleSetting('reducedMotion');
+      playUI();
+    });
+  }
+
   if (btnMenu) {
     btnMenu.addEventListener('click', (e) => {
       e.stopPropagation();
+      playUI();
       toggleMenuModal();
     });
   }
@@ -241,6 +292,7 @@ function setupMenuControls() {
   if (btnResume) {
     btnResume.addEventListener('click', (e) => {
       e.stopPropagation();
+      playUI();
       closeMenuModal();
     });
   }
@@ -248,6 +300,7 @@ function setupMenuControls() {
   if (btnRestart) {
     btnRestart.addEventListener('click', (e) => {
       e.stopPropagation();
+      playUI();
       closeMenuModal();
       inputState.restart = true;
       inputState.restartPressed = true;
@@ -257,6 +310,7 @@ function setupMenuControls() {
   if (btnInstall) {
     btnInstall.addEventListener('click', (e) => {
       e.stopPropagation();
+      playUI();
       if (window.__triggerPWAInstall) {
         window.__triggerPWAInstall();
       }

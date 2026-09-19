@@ -317,6 +317,65 @@ html, body {
   background: rgba(168, 85, 247, 0.25);
   border-color: #a855f7;
   color: #d8b4fe;
+/* ── Modal Settings Toggles ───────────────────────────── */
+.modal-settings {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  background: rgba(18, 22, 36, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cfd8ec;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: #1b1e2c;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  padding: 2px;
+  touch-action: manipulation;
+}
+
+.toggle-switch .toggle-knob {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #7b88a8;
+  transform: translateX(0);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.toggle-switch.active {
+  background: rgba(0, 229, 255, 0.22);
+  border-color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
+}
+
+.toggle-switch.active .toggle-knob {
+  background: #00e5ff;
+  transform: translateX(20px);
+  box-shadow: 0 0 8px #00e5ff;
 }
 
 .modal-footer {
