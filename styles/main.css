@@ -52,8 +52,10 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  border-radius: 20px;
+  padding: 10px 16px;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 22px;
   background: rgba(14, 16, 26, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
