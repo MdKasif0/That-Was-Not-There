@@ -64,13 +64,17 @@ export function render(ctx, s) {
 /* ═══════════════════════════════════════════════════════════
    BACKGROUND & DEPTH
    ═══════════════════════════════════════════════════════════ */
+let bgGrad = null;
+
 function drawBackground(ctx, s) {
-  // Deep slate architectural neutral gradient
-  const g = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-  g.addColorStop(0, C.bg0);
-  g.addColorStop(0.5, C.bg1);
-  g.addColorStop(1, C.bg2);
-  ctx.fillStyle = g;
+  // Deep slate architectural neutral gradient (cached to eliminate per-frame GC)
+  if (!bgGrad) {
+    bgGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+    bgGrad.addColorStop(0, C.bg0);
+    bgGrad.addColorStop(0.5, C.bg1);
+    bgGrad.addColorStop(1, C.bg2);
+  }
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
   // Subtle architectural grid
@@ -469,43 +473,67 @@ function drawUI(ctx, s) {
 
 /* — in-game minimal HUD --------------------------------- */
 function drawHUD(ctx, s) {
+  const total = getLevelCount();
+  const roomNum = s.currentLevel + 1;
+  const roomIndex = String(roomNum).padStart(2, '0');
+
+  /* 0. Top Progress Indicator Bar */
+  const progressRatio = Math.min(1, Math.max(0, roomNum / total));
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.fillRect(0, 0, CANVAS_W, 2);
+  ctx.fillStyle = C.player;
+  ctx.fillRect(0, 0, CANVAS_W * progressRatio, 2);
+
   ctx.textBaseline = 'top';
 
   /* 1. Room label — top left */
   ctx.textAlign = 'left';
   ctx.fillStyle = C.text;
-  const total = getLevelCount();
-  const roomIndex = String(s.currentLevel + 1).padStart(2, '0');
-  ctx.fillText(`${roomIndex} / ${String(total).padStart(2, '0')}`, 18, 16);
+  ctx.font = '700 13px "JetBrains Mono", "SF Mono", monospace';
+  ctx.fillText(`ROOM ${roomIndex} / ${String(total).padStart(2, '0')}`, 18, 14);
 
-  /* 2. Room subtitle */
+  /* 2. Deaths counter — unobstructed placement next to room */
+  ctx.fillStyle = '#ff5c7c';
+  ctx.font = '600 12px "JetBrains Mono", monospace';
+  ctx.fillText(`☠ DEATHS: ${s.deaths}`, 155, 14);
+
+  /* 3. Secret collectible diamond tally */
+  const secretCount = s.secretsCollected ? s.secretsCollected.length : 0;
+  if (secretCount > 0 || (s.secret && !s.secret.collected)) {
+    ctx.fillStyle = secretCount > 0 ? C.secretStar : C.textDim;
+    ctx.font = '500 11px "JetBrains Mono", monospace';
+    ctx.fillText(`◆ ${secretCount}/15`, 275, 15);
+  }
+
+  /* 4. Room subtitle */
   if (s.levelDef) {
     ctx.fillStyle = C.textDim;
     ctx.font = '500 11px "JetBrains Mono", monospace';
     const title = s.levelDef.title || s.levelDef.name || '';
-    ctx.fillText(title.toUpperCase(), 18, 33);
+    ctx.fillText(title.toUpperCase(), 18, 32);
   }
 
-  /* 3. Secret collectible diamond tally */
-  const secretCount = s.secretsCollected ? s.secretsCollected.length : 0;
-  ctx.fillStyle = secretCount > 0 ? C.secretStar : C.textDim;
-  ctx.font = '500 11px "JetBrains Mono", monospace';
-  ctx.fillText(`◆ ${secretCount}/15`, 95, 16);
+  /* 5. Minimal restart hint & First-launch controls */
+  if (s.currentLevel === 0) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = C.textHint;
+    ctx.font = '600 12px "JetBrains Mono", monospace';
+    ctx.fillText('MOVE: [A / D] or [← / →]   •   JUMP: [SPACE / W] or [↑]', CANVAS_W / 2, CANVAS_H - 34);
+    ctx.fillStyle = C.textDim;
+    ctx.font = '500 11px "JetBrains Mono", monospace';
+    ctx.fillText('[R] QUICK RESTART   •   [ESC / P] IN-GAME MENU & SETTINGS', CANVAS_W / 2, CANVAS_H - 16);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = C.textDim;
+    ctx.font = '500 11px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('[R] RESTART', CANVAS_W / 2, CANVAS_H - 10);
+  }
 
-  /* 4. Minimal death tally — top right */
-  ctx.textAlign = 'right';
-  ctx.fillStyle = C.textMuted;
-  ctx.font = '600 13px "JetBrains Mono", "SF Mono", monospace';
-  ctx.fillText(`☠ ${s.deaths}`, CANVAS_W - 20, 16);
-
-  /* 6. Minimal restart hint — bottom center */
-  ctx.fillStyle = C.textDim;
-  ctx.font = '500 11px "JetBrains Mono", monospace';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText('[R] RESTART', CANVAS_W / 2, CANVAS_H - 10);
-
-  /* 7. Level intro typography card */
+  /* 6. Level intro typography card */
   if (s.levelNameTimer > 0 && s.levelDef) {
     const elapsed = 2200 - s.levelNameTimer;
     let a;
