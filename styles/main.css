@@ -317,6 +317,18 @@ html, body {
   background: rgba(168, 85, 247, 0.25);
   border-color: #a855f7;
   color: #d8b4fe;
+}
+
+/* ── Accessible Focus Visible States ──────────────────── */
+#btn-menu:focus-visible,
+.modal-btn:focus-visible,
+.toggle-switch:focus-visible,
+.touch-btn:focus-visible {
+  outline: 2px solid #00e5ff !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.65) !important;
+}
+
 /* ── Modal Settings Toggles ───────────────────────────── */
 .modal-settings {
   width: 100%;

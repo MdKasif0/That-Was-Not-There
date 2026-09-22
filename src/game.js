@@ -27,6 +27,7 @@ export function initGame(context, devicePixelRatio) {
   if (typeof window !== 'undefined') {
     window.__gameState = state;
     window.__beginLevel = beginLevel;
+    window.__setGameDPR = (val) => { dpr = val; };
   }
 }
 
