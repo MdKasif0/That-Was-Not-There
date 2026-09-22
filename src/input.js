@@ -60,9 +60,13 @@ export function initInput(canvas, onPointerAction) {
 
   // ── Keyboard Listeners ─────────────────────────────
   window.addEventListener('keydown', (e) => {
-    // Prevent scrolling and default browser shortcuts for gameplay keys
+    const isModalOpen = menuModalEl && menuModalEl.classList.contains('open');
+
+    // Prevent scrolling and default browser shortcuts for gameplay keys when playing
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-      e.preventDefault();
+      if (!isModalOpen) {
+        e.preventDefault();
+      }
     }
 
     activeKeys.add(e.code);
@@ -74,12 +78,10 @@ export function initInput(canvas, onPointerAction) {
       closeMenuModal();
     }
     if (e.code === 'Escape' || e.code === 'KeyP') {
-      inputState.pause = !inputState.pause;
-      inputState.pausePressed = true;
-      if (inputState.pause) {
-        openMenuModal();
-      } else {
+      if (isModalOpen) {
         closeMenuModal();
+      } else {
+        openMenuModal();
       }
     }
     inputState.anyKey = true;
@@ -92,14 +94,7 @@ export function initInput(canvas, onPointerAction) {
 
   // Clear keys on window blur so inputs don't stick when unfocusing
   window.addEventListener('blur', () => {
-    activeKeys.clear();
-    inputState.left = false;
-    inputState.right = false;
-    inputState.jump = false;
-    inputState.restart = false;
-    for (const key of Object.keys(activePointers)) {
-      activePointers[key].clear();
-    }
+    resetInputState();
   });
 
   // ── Canvas Pointer (Click / Tap for Title & UI) ────
@@ -317,13 +312,72 @@ function setupMenuControls() {
     });
   }
 
-  // Close menu when clicking on backdrop outside the card
+  // Keyboard navigation & accessibility inside menu modal
   if (menuModalEl) {
+    menuModalEl.addEventListener('keydown', (e) => {
+      if (!menuModalEl.classList.contains('open')) return;
+
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        closeMenuModal();
+        return;
+      }
+
+      // Collect focusable buttons inside the modal card
+      const focusable = Array.from(menuModalEl.querySelectorAll('button:not([disabled])')).filter(
+        (el) => el.offsetParent !== null && window.getComputedStyle(el).display !== 'none'
+      );
+      if (focusable.length === 0) return;
+
+      const currentIndex = focusable.indexOf(document.activeElement);
+
+      if (e.code === 'Tab') {
+        e.preventDefault();
+        const nextIndex = e.shiftKey
+          ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+          : (currentIndex >= focusable.length - 1 ? 0 : currentIndex + 1);
+        focusable[nextIndex].focus();
+      } else if (e.code === 'ArrowDown') {
+        e.preventDefault();
+        const nextIndex = (currentIndex >= focusable.length - 1 || currentIndex < 0) ? 0 : currentIndex + 1;
+        focusable[nextIndex].focus();
+      } else if (e.code === 'ArrowUp') {
+        e.preventDefault();
+        const prevIndex = currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1;
+        focusable[prevIndex].focus();
+      }
+    });
+
+    // Close menu when clicking on backdrop outside the card
     menuModalEl.addEventListener('click', (e) => {
       if (e.target === menuModalEl) {
         closeMenuModal();
       }
     });
+  }
+}
+
+export function resetInputState() {
+  activeKeys.clear();
+  inputState.left = false;
+  inputState.right = false;
+  inputState.jump = false;
+  inputState.jumpPressed = false;
+  inputState.restart = false;
+  inputState.restartPressed = false;
+  inputState.anyKey = false;
+  _jumpPrev = false;
+  _restartPrev = false;
+  _pausePrev = false;
+  for (const key of Object.keys(activePointers)) {
+    activePointers[key].clear();
+  }
+  if (typeof document !== 'undefined') {
+    const pressedTouch = document.querySelectorAll('.touch-btn.pressed');
+    for (const b of pressedTouch) {
+      b.classList.remove('pressed');
+    }
   }
 }
 
@@ -342,6 +396,14 @@ export function openMenuModal() {
       menuLevelNameEl.textContent = `Room ${roomNum} / 20 — ${s.levelDef.title}`;
     }
   }
+
+  // Keyboard navigation & accessibility: auto-focus primary resume button
+  const resumeBtn = document.getElementById('menu-btn-resume');
+  if (resumeBtn) {
+    setTimeout(() => {
+      try { resumeBtn.focus(); } catch (_) {}
+    }, 40);
+  }
 }
 
 export function closeMenuModal() {
@@ -349,6 +411,10 @@ export function closeMenuModal() {
   inputState.pause = false;
   menuModalEl.classList.remove('open');
   menuModalEl.setAttribute('aria-hidden', 'true');
+  if (typeof window !== 'undefined' && window.__gameState) {
+    window.__gameState.paused = false;
+  }
+  resetInputState();
 }
 
 export function toggleMenuModal() {
