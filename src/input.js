@@ -253,7 +253,8 @@ function setupMenuControls() {
   onSettingsChange(syncToggleUI);
 
   if (toggleSound) {
-    toggleSound.addEventListener('click', (e) => {
+    const row = toggleSound.closest('.setting-row') || toggleSound;
+    row.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleSetting('sound');
       playUI();
@@ -261,7 +262,8 @@ function setupMenuControls() {
   }
 
   if (toggleAmbient) {
-    toggleAmbient.addEventListener('click', (e) => {
+    const row = toggleAmbient.closest('.setting-row') || toggleAmbient;
+    row.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleSetting('ambient');
       playUI();
@@ -269,7 +271,8 @@ function setupMenuControls() {
   }
 
   if (toggleMotion) {
-    toggleMotion.addEventListener('click', (e) => {
+    const row = toggleMotion.closest('.setting-row') || toggleMotion;
+    row.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleSetting('reducedMotion');
       playUI();

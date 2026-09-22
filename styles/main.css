@@ -348,6 +348,16 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.15s ease;
+}
+
+.setting-row:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .setting-label {
