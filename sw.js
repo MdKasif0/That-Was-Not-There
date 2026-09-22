@@ -11,7 +11,7 @@
  * - Zero third-party runtime dependencies cached
  */
 
-const CACHE_VERSION = 'twnt-v4.2.0';
+const CACHE_VERSION = 'twnt-v5.0.0';
 
 const CORE_ASSETS = [
   './',
