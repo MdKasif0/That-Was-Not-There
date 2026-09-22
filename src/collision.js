@@ -41,9 +41,20 @@ export function resolveVerticalCollisions(player, platforms) {
   player.hitCeiling = false;
   player.slippery = false;
 
+  const prevBottom = (player.y - player.vy) + player.h;
+
   for (const p of platforms) {
     if (!p.visible || p.solid === false || p.active === false) continue;
-    if (!aabb(player, p)) continue;
+
+    // Check horizontal overlap first
+    const hOverlap = player.x < p.x + p.w && player.x + player.w > p.x;
+    if (!hOverlap) continue;
+
+    // Standard AABB overlap or swept vertical passage (anti-tunneling protection)
+    const vOverlap = (player.y < p.y + p.h && player.y + player.h > p.y) ||
+                     (player.vy > 0 && prevBottom <= p.y + 2 && player.y + player.h >= p.y);
+
+    if (!vOverlap) continue;
 
     if (player.vy >= 0) {
       // Landing on top of platform
@@ -75,16 +86,27 @@ export function resolveCollisions(player, platforms) {
 
 /**
  * Check player vs spike collision (uses a slightly forgiving hitbox).
+ * Zero-allocation for high performance and minimal GC pressure.
  */
 export function checkSpikeCollision(player, spikes) {
   return !!getCollidingSpike(player, spikes);
 }
 
 export function getCollidingSpike(player, spikes) {
+  const px = player.x;
+  const pw = player.w;
+  const py = player.y;
+  const ph = player.h;
+
   for (const s of spikes) {
     if (!s.active) continue;
-    const box = { x: s.x + 4, y: s.y + 4, w: s.w - 8, h: s.h - 8 };
-    if (aabb(player, box)) return s;
+    const sx = s.x + 4;
+    const sy = s.y + 4;
+    const sw = s.w - 8;
+    const sh = s.h - 8;
+    if (px < sx + sw && px + pw > sx && py < sy + sh && py + ph > sy) {
+      return s;
+    }
   }
   return null;
 }
